@@ -3,10 +3,13 @@
 All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [0.2.0] - 2026-10-25
 
 ### Added
 - Startup check for LM Studio and Hermes; if missing (and the configured endpoint is local), the app offers to run the official install script after confirmation. Switchable in the settings.
+
+### Documentation
+- German technical documentation (`docs/TECHNICAL.de.md`) and cross-links between language versions.
 
 ## [0.1.0] - 2026-10-25
 
@@ -22,4 +25,5 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - English and German user interface.
 - English and German README, technical documentation, installer script, unit tests for the routing logic.
 
+[0.2.0]: https://github.com/datenklo/lms-hermes-bridge/releases/tag/v0.2.0
 [0.1.0]: https://github.com/datenklo/lms-hermes-bridge/releases/tag/v0.1.0
