@@ -25,17 +25,16 @@ flowchart LR
 
 | Modul | Aufgabe |
 |-------|---------|
-| `app.py` | `BridgeApp` (Einzelinstanz, Aktionen, Kommandozeile `--background`), `BridgeWindow` (Overlay, Rechtsklick-Menü, Worker-Thread), Über-Dialog |
+| `app.py` | `BridgeApp` (Einzelinstanz, Aktionen, Kommandozeile `--background`), `BridgeWindow` (Overlay, Rechtsklick-Menü, Worker-Thread), Über- und Update-Dialog |
 | `router.py` | Reine Entscheidungslogik: `classify`, `pick_model`, `decide`, `TIER_PARAMS`. Keine Ein-/Ausgabe |
 | `lmstudio.py` | Modellerkennung (`GET /api/v0/models`, `lms ls --json` für Größen), `lms load/unload`, RAM-Erkennung |
 | `desktop_context.py` | Zwischenablage-/Bildvalidierung und Screenshot-Aufnahme über das XDG-Screenshot-Portal, Bildlimit 16 MB |
-| `updater.py` | Findet den pipx-Quellcheckout über PEP 610, prüft das offizielle GitHub-Remote, lehnt dirty/nicht-main Checkouts ab, zieht per Fast-Forward und installiert mit pipx neu |
+| `updater.py` | Periodischer Fetch-/Commit-Abstandscheck; findet den pipx-Quellcheckout über PEP 610, prüft das offizielle GitHub-Remote, lehnt dirty/nicht-main Checkouts ab, zieht per Fast-Forward und installiert mit pipx neu |
 | `update_window.py` | Bestätigungs-/Fortschrittsfenster; Neustart wird nur nach erfolgreicher Neuinstallation angeboten |
-| `desktop_context.py` | Zwischenablage-/Bildvalidierung und Screenshot-Aufnahme über das XDG-Screenshot-Portal, Bildlimit 16 MB |
 | `providers.py` | Streaming-Clients: OpenAI-kompatibel (`/chat/completions`) und Anthropic (`/v1/messages`), SSE-Parsing, `ChatError` |
 | `config.py` | JSON-Konfiguration in `~/.config/lms-hermes-bridge/config.json` (Rechte `0600`), Standardwerte, tiefes Zusammenführen, Anbieter-Vorlagen |
 | `system_prompts.py` | Deutsche und englische Standardanweisungen; wählt den Prompt der eingestellten Sprache mit Standard-Fallback |
-| `settings_dialog.py` | Einstellungsfenster mit Reitern (Allgemein, LM Studio, Hermes, Externe Modelle) |
+| `settings_dialog.py` | Einstellungsfenster mit Reitern (Allgemein, Systemprompt, LM Studio, Hermes, Routinen, Externe Modelle) |
 | `tray.py` | StatusNotifierItem + `com.canonical.dbusmenu` über `Gio.DBusConnection` |
 | `hotkey.py` | Registriert einen GNOME-Shortcut über `gsettings` (`Gio.Settings`) |
 | `services.py` | Startet den lokalen LM-Studio-Server (`lms server start`, Ausweichen auf `lms daemon up`) und das Hermes-Gateway (`hermes gateway start`), wenn deren Health-Check fehlschlägt, und wartet dann auf die Antwort. Überspringt entfernte URLs, nicht installierte Programme und die abgeschaltete Einstellung |

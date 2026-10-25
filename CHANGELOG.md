@@ -3,7 +3,7 @@
 All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [0.4.1] - 2026-10-25
 
 ### Added
 - Editable, separately stored German/English system prompts with the supplied fact-grounded defaults and per-language reset.
@@ -81,6 +81,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - English and German user interface.
 - English and German README, technical documentation, installer script, unit tests for the routing logic.
 
+[0.4.1]: https://github.com/datenklo/lms-hermes-bridge/releases/tag/v0.4.1
 [0.4.0]: https://github.com/datenklo/lms-hermes-bridge/releases/tag/v0.4.0
 [0.3.1]: https://github.com/datenklo/lms-hermes-bridge/releases/tag/v0.3.1
 [0.3.0]: https://github.com/datenklo/lms-hermes-bridge/releases/tag/v0.3.0

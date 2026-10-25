@@ -25,17 +25,16 @@ flowchart LR
 
 | Module | Responsibility |
 |--------|----------------|
-| `app.py` | `BridgeApp` (single instance, actions, command line `--background`), `BridgeWindow` (overlay, right-click menu, worker thread), About dialog |
+| `app.py` | `BridgeApp` (single instance, actions, command line `--background`), `BridgeWindow` (overlay, right-click menu, worker thread), About and update dialogs |
 | `router.py` | Pure decision logic: `classify`, `pick_model`, `decide`, `TIER_PARAMS`. No I/O |
 | `lmstudio.py` | Model discovery (`GET /api/v0/models`, `lms ls --json` for sizes), `lms load/unload`, RAM detection |
 | `desktop_context.py` | Clipboard/image payload validation and XDG Screenshot portal capture, with a 16 MB image limit |
-| `updater.py` | Finds pipx's PEP 610 source checkout, verifies the expected GitHub remote, refuses dirty/non-main checkouts, fast-forward pulls and reinstalls with pipx |
+| `updater.py` | Periodic fetch/count check; finds pipx's PEP 610 source checkout, verifies the expected GitHub remote, refuses dirty/non-main checkouts, fast-forward pulls and reinstalls with pipx |
 | `update_window.py` | Confirmation-progress UI for updating; offers restart only after a successful reinstall |
-| `desktop_context.py` | Clipboard/image payload validation and XDG Screenshot portal capture, with a 16 MB image limit |
 | `providers.py` | Streaming clients: OpenAI-compatible (`/chat/completions`) and Anthropic (`/v1/messages`), SSE parsing, `ChatError` |
 | `config.py` | JSON config in `~/.config/lms-hermes-bridge/config.json` (mode `0600`), defaults, deep merge, provider presets |
 | `system_prompts.py` | German and English default system instructions; chooses the configured language prompt with default fallback |
-| `settings_dialog.py` | Tabbed settings window (General, LM Studio, Hermes, External models) |
+| `settings_dialog.py` | Tabbed settings window (General, System prompt, LM Studio, Hermes, Routines, External models) |
 | `tray.py` | StatusNotifierItem + `com.canonical.dbusmenu` over `Gio.DBusConnection` |
 | `hotkey.py` | Registers a GNOME custom keybinding through `gsettings` (`Gio.Settings`) |
 | `services.py` | Starts the local LM Studio server (`lms server start`, falling back to `lms daemon up`) and the Hermes gateway (`hermes gateway start`) when their health checks fail, then polls until they answer. Skips remote URLs, uninstalled tools and the disabled setting |
