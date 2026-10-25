@@ -5,8 +5,7 @@ cd "$(dirname "$0")"
 pipx install --system-site-packages --force .
 pipx ensurepath >/dev/null
 
-mkdir -p "$HOME/.config/autostart" \
-	"$HOME/.local/share/applications" \
+mkdir -p "$HOME/.local/share/applications" \
 	"$HOME/.local/share/icons/hicolor/scalable/apps"
 
 desktop_entry="$HOME/.local/share/applications/io.github.lmshermesbridge.desktop"
@@ -22,16 +21,13 @@ if command -v update-desktop-database >/dev/null; then
 	update-desktop-database "$HOME/.local/share/applications" >/dev/null
 fi
 
-cat > "$HOME/.config/autostart/lms-hermes-bridge.desktop" <<EOF
-[Desktop Entry]
-Type=Application
-Name=LMS Hermes Bridge
-Exec=$HOME/.local/bin/lms-hermes-bridge --background
-X-GNOME-Autostart-enabled=true
-EOF
+PATH="$HOME/.local/bin:$PATH" PYTHONPATH=src /usr/bin/python3 - <<'PY'
+from lms_hermes_bridge import autostart, config
+autostart.set_enabled(config.load()["start_on_login"])
+PY
 
 # Register the default hotkey (GNOME custom shortcut).
-PATH="$HOME/.local/bin:$PATH" python3 - <<'PY'
+PATH="$HOME/.local/bin:$PATH" PYTHONPATH=src /usr/bin/python3 - <<'PY'
 from lms_hermes_bridge import hotkey
 print("hotkey registered" if hotkey.register("<Control><Alt>space") else "hotkey registration failed")
 PY

@@ -53,7 +53,7 @@ cd lms-hermes-bridge
 ./install.sh
 ```
 
-`install.sh` installs the app with `pipx` (using system site-packages for PyGObject), adds **LMS Hermes Bridge** to Ubuntu's Applications menu with the brain icon, adds an autostart entry and registers the default hotkey as a GNOME custom shortcut. You can change the hotkey in the settings (right-click the overlay, then **Settings…**).
+`install.sh` installs the app with `pipx` (using system site-packages for PyGObject), adds **LMS Hermes Bridge** to Ubuntu's Applications menu with the brain icon, applies the login autostart setting and registers the default hotkey as a GNOME custom shortcut. Login autostart can be changed later in right-click → **Settings…** → **General**.
 
 Run without installing: `PYTHONPATH=src python3 -m lms_hermes_bridge`
 

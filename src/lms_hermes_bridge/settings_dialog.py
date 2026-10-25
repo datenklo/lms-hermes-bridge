@@ -6,7 +6,7 @@ import gi
 gi.require_version("Gtk", "4.0")
 from gi.repository import Gtk  # noqa: E402
 
-from . import config as cfgmod, hotkey  # noqa: E402
+from . import autostart, config as cfgmod, hotkey  # noqa: E402
 from .i18n import STRINGS, current, t  # noqa: E402
 
 KINDS = ["openai", "anthropic"]
@@ -72,6 +72,9 @@ class SettingsWindow(Gtk.Window):
         names = [t("auto")] + [s["language_name"] for k, s in STRINGS.items()]
         self.w_lang = _row(g, t("language"), Gtk.DropDown.new_from_strings(names))
         self.w_lang.set_selected(self.langs.index(self.cfg["language"]) if self.cfg["language"] in self.langs else 0)
+
+        self.w_start_on_login = _row(g, t("start_on_login"), Gtk.Switch(halign=Gtk.Align.START))
+        self.w_start_on_login.set_active(self.cfg["start_on_login"])
 
         self.w_local = _row(g, t("local_only"), Gtk.Switch(halign=Gtk.Align.START))
         self.w_local.set_active(self.cfg["local_only"])
@@ -311,6 +314,7 @@ class SettingsWindow(Gtk.Window):
     def _save(self, *_):
         c = self.cfg
         c["language"] = self.langs[self.w_lang.get_selected()]
+        c["start_on_login"] = self.w_start_on_login.get_active()
         c["local_only"] = self.w_local.get_active()
         c["check_components"] = self.w_check.get_active()
         c["autostart_backends"] = self.w_autostart.get_active()
@@ -350,5 +354,6 @@ class SettingsWindow(Gtk.Window):
         valid = {"auto", "local", "hermes"} | {"provider:" + p["id"] for p in c["providers"]}
         c["routing"] = sel if sel in valid else "auto"
         cfgmod.save(c)
+        autostart.set_enabled(c["start_on_login"])
         self.on_save()
         self.close()

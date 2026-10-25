@@ -92,6 +92,7 @@ Wayland forbids application-wide global shortcuts, so the app registers a GNOME 
 {
   "language": "auto|en|de",
   "hotkey": "<Control><Alt>space",
+  "start_on_login": true,
   "local_only": false,
   "routing": "auto|local|hermes|provider:<id>",
   "lmstudio": { "url": "...", "auto_load": true, "unload_others": true,
@@ -110,6 +111,8 @@ Wayland forbids application-wide global shortcuts, so the app registers a GNOME 
 ```
 
 Writes are atomic (temp file + `os.replace`). API keys are stored in plain text; the file is only readable by the owner.
+
+The General settings switch creates or removes `~/.config/autostart/lms-hermes-bridge.desktop` immediately on save. The installer applies the persisted `start_on_login` value.
 
 ## Adding things
 

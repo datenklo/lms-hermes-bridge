@@ -104,6 +104,7 @@ DEFAULT_ROUTINES = [
 DEFAULTS = {
     "language": "auto",  # auto | en | de
     "hotkey": "<Control><Alt>space",
+    "start_on_login": True,  # create a GNOME autostart entry for this app
     "local_only": False,  # never contact external providers
     "check_components": True,  # offer to install missing LM Studio / Hermes at start
     "autostart_backends": True,  # start local LM Studio server / Hermes gateway in the background when down
