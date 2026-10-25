@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <g fill="none" stroke="#e6e6e6" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round">
+    <!-- left hemisphere -->
+    <path d="M31 12c-3-4-10-4-12 1-5 0-9 4-8 9-3 2-4 7-1 10-1 4 1 8 5 9 1 4 6 6 9 3 3 3 7 1 7-2V12z"/>
+    <!-- right hemisphere -->
+    <path d="M33 12c3-4 10-4 12 1 5 0 9 4 8 9 3 2 4 7 1 10 1 4-1 8-5 9-1 4-6 6-9 3-3 3-7 1-7-2V12z"/>
+    <!-- folds -->
+    <path d="M31 24c-4 0-7 2-9 5M31 36c-4 0-6 2-8 5M33 24c4 0 7 2 9 5M33 36c4 0 6 2 8 5"/>
+  </g>
+</svg>

@@ -1,0 +1,126 @@
+"""Minimal translation layer. Add a language by adding a dict to STRINGS."""
+import locale
+
+STRINGS = {
+    "en": {
+        "language_name": "English",
+        "placeholder": "Ask anything or describe a task…",
+        "settings": "Settings…",
+        "quit": "Quit",
+        "tab_general": "General",
+        "tab_lmstudio": "LM Studio",
+        "tab_hermes": "Hermes",
+        "tab_providers": "External models",
+        "language": "Language",
+        "auto": "Automatic",
+        "hotkey": "Global hotkey",
+        "hotkey_apply": "Register hotkey",
+        "hotkey_ok": "Hotkey registered.",
+        "hotkey_fail": "Could not register hotkey (GNOME required).",
+        "local_only": "Local only (never use external APIs)",
+        "routing": "Routing",
+        "route_auto": "Automatic",
+        "route_local": "Always LM Studio",
+        "route_hermes": "Always Hermes",
+        "lms_url": "LM Studio API URL",
+        "lms_auto_load": "Load models automatically (lms CLI)",
+        "lms_unload": "Unload other models before loading",
+        "pref_fast": "Fast model (optional key)",
+        "pref_balanced": "Balanced model (optional key)",
+        "pref_deep": "Deep model (optional key)",
+        "pref_code": "Code model (optional key)",
+        "hermes_enabled": "Enable Hermes",
+        "hermes_endpoint": "Hermes chat endpoint URL",
+        "api_key": "API key",
+        "model": "Model",
+        "add": "Add",
+        "remove": "Remove",
+        "name": "Name",
+        "kind": "API type",
+        "endpoint": "Endpoint URL",
+        "enabled": "Enabled",
+        "save": "Save",
+        "cancel": "Cancel",
+        "preset": "Add preset",
+        "thinking": "Thinking…",
+        "err_no_target": "No backend available. Start LM Studio or configure a provider.",
+        "err_local_only": "Local-only mode is on and no local backend is reachable.",
+        "err_generic": "Error",
+        "route_label": "{backend} · {model} · {tier} — {reason}",
+        "loading_model": "Loading model {model}…",
+        "tier_fast": "fast",
+        "tier_balanced": "balanced",
+        "tier_deep": "deep",
+        "tier_code": "code",
+        "tier_agent": "agent",
+    },
+    "de": {
+        "language_name": "Deutsch",
+        "placeholder": "Frag etwas oder beschreibe eine Aufgabe…",
+        "settings": "Einstellungen…",
+        "quit": "Beenden",
+        "tab_general": "Allgemein",
+        "tab_lmstudio": "LM Studio",
+        "tab_hermes": "Hermes",
+        "tab_providers": "Externe Modelle",
+        "language": "Sprache",
+        "auto": "Automatisch",
+        "hotkey": "Globale Tastenkombination",
+        "hotkey_apply": "Tastenkombination registrieren",
+        "hotkey_ok": "Tastenkombination registriert.",
+        "hotkey_fail": "Tastenkombination konnte nicht registriert werden (GNOME nötig).",
+        "local_only": "Nur lokal (nie externe APIs nutzen)",
+        "routing": "Routing",
+        "route_auto": "Automatisch",
+        "route_local": "Immer LM Studio",
+        "route_hermes": "Immer Hermes",
+        "lms_url": "LM-Studio-API-URL",
+        "lms_auto_load": "Modelle automatisch laden (lms CLI)",
+        "lms_unload": "Andere Modelle vor dem Laden entladen",
+        "pref_fast": "Schnelles Modell (optionaler Key)",
+        "pref_balanced": "Ausgewogenes Modell (optionaler Key)",
+        "pref_deep": "Tiefes Modell (optionaler Key)",
+        "pref_code": "Code-Modell (optionaler Key)",
+        "hermes_enabled": "Hermes aktivieren",
+        "hermes_endpoint": "Hermes-Chat-Endpunkt-URL",
+        "api_key": "API-Schlüssel",
+        "model": "Modell",
+        "add": "Hinzufügen",
+        "remove": "Entfernen",
+        "name": "Name",
+        "kind": "API-Typ",
+        "endpoint": "Endpunkt-URL",
+        "enabled": "Aktiv",
+        "save": "Speichern",
+        "cancel": "Abbrechen",
+        "preset": "Vorlage hinzufügen",
+        "thinking": "Denke nach…",
+        "err_no_target": "Kein Backend verfügbar. Starte LM Studio oder konfiguriere einen Anbieter.",
+        "err_local_only": "Nur-lokal-Modus aktiv, aber kein lokales Backend erreichbar.",
+        "err_generic": "Fehler",
+        "route_label": "{backend} · {model} · {tier} — {reason}",
+        "loading_model": "Lade Modell {model}…",
+        "tier_fast": "schnell",
+        "tier_balanced": "ausgewogen",
+        "tier_deep": "tief",
+        "tier_code": "Code",
+        "tier_agent": "Agent",
+    },
+}
+
+_lang = "en"
+
+
+def detect() -> str:
+    code = (locale.getlocale()[0] or "en")[:2].lower()
+    return code if code in STRINGS else "en"
+
+
+def set_language(setting: str) -> None:
+    global _lang
+    _lang = detect() if setting == "auto" else (setting if setting in STRINGS else "en")
+
+
+def t(key: str, **kw) -> str:
+    s = STRINGS[_lang].get(key) or STRINGS["en"].get(key, key)
+    return s.format(**kw) if kw else s

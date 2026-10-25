@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "lms-hermes-bridge"
+version = "0.1.0"
+description = "Hotkey launcher overlay bridging the Ubuntu desktop, LM Studio, Hermes and external LLM APIs"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+# PyGObject (GTK 4) comes from the system: sudo apt install python3-gi gir1.2-gtk-4.0
+dependencies = []
+
+[project.optional-dependencies]
+dev = ["pytest"]
+
+[project.scripts]
+lms-hermes-bridge = "lms_hermes_bridge.app:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+lms_hermes_bridge = ["icons/*.svg"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
