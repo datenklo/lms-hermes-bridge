@@ -29,6 +29,8 @@ Ein per Tastenkombination aufrufbares Overlay für Ubuntu (GNOME), das den Deskt
 
 In den Einstellungen lässt sich das Routing überschreiben: immer LM Studio, immer Hermes oder immer ein bestimmter externer Anbieter.
 
+**Hermes-Stichwörter:** Eine Anfrage geht an Hermes, wenn sie ein Wort oder eine Wortgruppe aus einer eingebauten Liste typischer Benutzeraktionen enthält (öffne, installiere, lösche, erstelle Datei, sende E-Mail, erinnere mich, … sowie die englischen Entsprechungen). Die Liste ist per Rechtsklick → **Einstellungen…** → **Hermes-Stichwörter** editierbar (ein Eintrag pro Zeile, nur ganze Wörter; ein `*` am Ende erfasst auch längere Formen, z. B. `installier*`; Artikel zwischen den Wörtern werden ignoriert, `erstelle datei` trifft also „erstelle eine Datei“).
+
 ## Voraussetzungen
 
 - Ubuntu 24.04+ mit GNOME (X11 oder Wayland)

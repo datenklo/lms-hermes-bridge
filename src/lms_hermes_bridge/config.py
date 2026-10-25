@@ -28,6 +28,34 @@ PROVIDER_PRESETS = {
     },
 }
 
+DEFAULT_AGENT_KEYWORDS = [
+    # English: apps and system
+    "open", "launch", "start", "run", "execute", "close", "quit", "kill", "install", "uninstall",
+    "update", "upgrade", "restart", "reboot", "shut down", "lock the screen", "turn on", "turn off",
+    "connect to", "disconnect", "mount", "unmount", "set volume", "set brightness", "mute",
+    # English: files
+    "create file", "create folder", "make folder", "delete", "remove", "rename", "move", "copy",
+    "save file", "download", "upload", "zip", "unzip", "extract", "compress", "backup", "list files",
+    "show files", "find file",
+    # English: web, communication, scheduling
+    "browse", "go to", "navigate to", "search the web", "search online", "google", "send email",
+    "send mail", "send message", "schedule", "remind me", "set timer", "set alarm", "add to calendar",
+    "take screenshot", "screenshot", "click", "automate",
+    # Deutsch: Apps und System
+    "öffne*", "starte*", "führe aus*", "ausführen*", "schließe*", "beende*", "installiere*", "deinstalliere*",
+    "aktualisiere*", "neustart*", "fahre herunter*", "herunterfahren*", "sperre den bildschirm*",
+    "schalte ein*", "schalte aus*", "verbinde*", "trenne*", "stelle lautstärke*", "stelle helligkeit*",
+    # Deutsch: Dateien
+    "erstelle datei*", "erstelle ordner*", "lege ordner an*", "lösche*", "entferne*", "benenne um*",
+    "verschiebe*", "kopiere*", "speichere datei*", "lade herunter*", "lade datei herunter*", "lade hoch*", "herunterladen*",
+    "entpacke*", "komprimiere*", "sichere*", "liste dateien*", "zeige dateien*", "finde datei*",
+    # Deutsch: Web, Kommunikation, Planung
+    "durchsuche*", "gehe zu*", "navigiere zu*", "suche im web*", "suche im internet*", "google",
+    "sende email*", "sende mail*", "sende nachricht*", "schicke*", "plane termin*", "erinnere mich*",
+    "stelle timer*", "stelle wecker*", "trage in kalender ein*", "mache screenshot*", "klicke*",
+    "automatisiere*",
+]
+
 DEFAULTS = {
     "language": "auto",  # auto | en | de
     "hotkey": "<Control><Alt>space",
@@ -50,6 +78,7 @@ DEFAULTS = {
         "model": "hermes-agent",
     },
     "providers": [],  # list of {id, name, kind, endpoint, api_key, model, enabled}
+    "agent_keywords": list(DEFAULT_AGENT_KEYWORDS),  # prompts matching these go to Hermes
 }
 
 

@@ -3,6 +3,14 @@
 All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+- Editable "Hermes keywords" list (settings tab) that decides which requests go to Hermes, with a broad built-in default list of typical user actions in English and German. Whole-word matching, trailing `*` for word forms, articles between words are ignored.
+
+### Changed
+- Hermes routing no longer uses a hard-coded pattern; the list lives in the config (`agent_keywords`).
+
 ## [0.2.0] - 2026-10-25
 
 ### Added

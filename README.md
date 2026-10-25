@@ -22,12 +22,14 @@ A hotkey-driven launcher overlay for Ubuntu (GNOME) that bridges your desktop, [
 | Step | Logic |
 |------|-------|
 | 1. Classify | Keyword and length heuristics (no model call, zero latency) |
-| 2. Backend | `agent` tasks go to Hermes (if enabled); everything else to LM Studio; fallbacks: Hermes, then external providers (unless local-only) |
+| 2. Backend | `agent` tasks (keyword list, editable) go to Hermes (if enabled); everything else to LM Studio; fallbacks: Hermes, then external providers (unless local-only) |
 | 3. Model | `fast`: smallest model ≤ 9B, loaded one preferred. `code`: a coder model if present. `deep`: largest model that fits ~75% of RAM. `balanced`: ~8B class. Optional per-tier overrides in settings |
 | 4. Parameters | Context length (capped by the model maximum), temperature and max tokens per tier |
 | 5. Load | `lms unload --all` (optional) then `lms load <model> --context-length N --gpu max` |
 
 You can override automatic routing in settings: always LM Studio, always Hermes, or always a specific external provider.
+
+**Hermes keywords:** a request goes to Hermes when it contains one of the words or phrases from a built-in list of typical user actions (open, install, delete, create file, send email, remind me, … and their German equivalents). The list is editable under right-click → **Settings…** → **Hermes keywords** (one entry per line, whole words only; a trailing `*` also matches longer forms, e.g. `install*`; articles between words are ignored, so `create file` matches "create a file").
 
 ## Requirements
 

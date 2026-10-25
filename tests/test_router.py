@@ -61,3 +61,23 @@ def test_agent_goes_to_hermes():
     c = cfg()
     c["hermes"]["enabled"] = True
     assert router.decide("open the browser", c, MODELS, 32 * GB).backend == "hermes"
+
+
+def test_default_keywords_cover_common_actions():
+    for p in ["Öffne den Browser mit wetter.de", "open firefox", "Please create a file notes.txt",
+              "Erstelle eine Datei test.txt", "Lade die Datei herunter", "remind me at 5", "Lösche alte Logs"]:
+        assert router.classify(p)[0] == "agent", p
+
+
+def test_keywords_are_whole_words_unless_starred():
+    assert router.classify("What is the copyright of this book?")[0] != "agent"
+    assert router.classify("Tell me about opening hours of museums")[0] != "agent"
+    assert router.classify("install* is a good stem", ["install*"])[0] == "agent"
+    assert router.classify("öffnen wir das Gespräch", ["öffne*"])[0] == "agent"
+
+
+def test_custom_and_empty_keyword_lists():
+    assert router.classify("fnord the thing", ["fnord"])[0] == "agent"
+    assert router.classify("open firefox", [])[0] != "agent"
+    assert router.decide("fnord now", cfg(agent_keywords=["fnord"], hermes={**DEFAULTS["hermes"], "enabled": True}),
+                         MODELS, 32 * GB).backend == "hermes"

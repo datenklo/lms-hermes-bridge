@@ -46,6 +46,7 @@ class SettingsWindow(Gtk.Window):
         nb.append_page(self._general(), Gtk.Label(label=t("tab_general")))
         nb.append_page(self._lmstudio(), Gtk.Label(label=t("tab_lmstudio")))
         nb.append_page(self._hermes(), Gtk.Label(label=t("tab_hermes")))
+        nb.append_page(self._keywords(), Gtk.Label(label=t("tab_keywords")))
         nb.append_page(self._providers_tab(), Gtk.Label(label=t("tab_providers")))
         box.append(nb)
 
@@ -116,6 +117,19 @@ class SettingsWindow(Gtk.Window):
         self.w_h_key = _row(g, t("api_key"), _entry(c["api_key"], secret=True))
         self.w_h_model = _row(g, t("model"), _entry(c["model"]))
         return g
+
+    def _keywords(self):
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8, margin_top=12, margin_bottom=12,
+                      margin_start=12, margin_end=12)
+        box.append(Gtk.Label(label=t("keywords_help"), xalign=0, wrap=True))
+        self.kw_buf = Gtk.TextBuffer()
+        self.kw_buf.set_text("\n".join(self.cfg["agent_keywords"]))
+        view = Gtk.TextView(buffer=self.kw_buf, monospace=True, wrap_mode=Gtk.WrapMode.NONE)
+        box.append(Gtk.ScrolledWindow(child=view, vexpand=True))
+        reset = Gtk.Button(label=t("keywords_reset"), halign=Gtk.Align.START)
+        reset.connect("clicked", lambda *_: self.kw_buf.set_text("\n".join(cfgmod.DEFAULT_AGENT_KEYWORDS)))
+        box.append(reset)
+        return box
 
     def _providers_tab(self):
         outer = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8, margin_top=8, margin_start=8, margin_end=8)
@@ -189,6 +203,8 @@ class SettingsWindow(Gtk.Window):
         h["endpoint"] = self.w_h_url.get_text().strip()
         h["api_key"] = self.w_h_key.get_text()
         h["model"] = self.w_h_model.get_text().strip()
+        text = self.kw_buf.get_text(self.kw_buf.get_start_iter(), self.kw_buf.get_end_iter(), False)
+        c["agent_keywords"] = list(dict.fromkeys(ln.strip() for ln in text.splitlines() if ln.strip()))
         c["providers"] = [
             {
                 "id": w["id"],
