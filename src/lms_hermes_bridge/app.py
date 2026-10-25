@@ -6,8 +6,9 @@ import gi
 gi.require_version("Gtk", "4.0")
 from gi.repository import Gdk, Gio, GLib, Gtk  # noqa: E402
 
-from . import APP_ID, __version__, config as cfgmod, lmstudio, providers, router  # noqa: E402
+from . import APP_ID, __version__, config as cfgmod, installer, lmstudio, providers, router  # noqa: E402
 from .i18n import set_language, t  # noqa: E402
+from .install_window import InstallWindow  # noqa: E402
 from .settings_dialog import SettingsWindow  # noqa: E402
 from .tray import ICON_DIR, Tray  # noqa: E402
 
@@ -196,11 +197,44 @@ class BridgeApp(Gtk.Application):
             self.win = BridgeWindow(self, self.cfg)
 
     def do_command_line(self, cl):
+        first = self.win is None
         self._ensure_window()
+        if first:
+            threading.Thread(target=self._scan_components, daemon=True).start()
         opts = cl.get_options_dict().end().unpack()
         if "background" not in opts:
             self.toggle()
         return 0
+
+    def _scan_components(self):
+        GLib.idle_add(self._offer, installer.missing(self.cfg))
+
+    def _offer(self, queue: list):
+        if not queue:
+            return False
+        name, rest = queue[0], queue[1:]
+        label = installer.NAMES[name]
+        dlg = Gtk.AlertDialog(
+            message=t("setup_title", name=label),
+            detail=t("setup_body", name=label, cmd=installer.command_text(name)),
+            buttons=[t("install"), t("not_now"), t("never_ask")], default_button=1, cancel_button=1,
+        )
+        dlg.choose(None, None, self._on_offer_choice, name, rest)
+        return False
+
+    def _on_offer_choice(self, dlg, result, name, rest):
+        try:
+            choice = dlg.choose_finish(result)
+        except GLib.Error:
+            choice = 1
+        if choice == 0:
+            InstallWindow(None, name, lambda: self._offer(rest)).present()
+            return
+        if choice == 2:
+            self.cfg["check_components"] = False
+            cfgmod.save(self.cfg)
+            return
+        self._offer(rest)
 
     def toggle(self):
         if self.win.get_visible() and self.win.is_active():

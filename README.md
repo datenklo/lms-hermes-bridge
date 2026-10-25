@@ -13,6 +13,7 @@ A hotkey-driven launcher overlay for Ubuntu (GNOME) that bridges your desktop, [
 - **Hermes integration** for action-oriented tasks ("open…", "install…", "create a file…") via Hermes' OpenAI-compatible API server.
 - **External models** (Claude, ChatGPT, Copilot/GitHub Models, custom OpenAI-compatible endpoints), usable as forced route or as fallback when LM Studio is down.
 - **Local-only switch** that guarantees no request leaves your machine.
+- **Install on start:** if LM Studio (headless daemon + `lms` CLI) or Hermes is not found on this machine, the app asks whether to install it with the vendor's official install script. The exact command is shown before anything runs; nothing is installed without confirmation. Can be switched off in the settings.
 - **Right-click settings menu** inside the overlay for all endpoints, keys and options.
 - **Multilingual UI:** English and German (auto-detected, switchable). New languages are one dictionary in `i18n.py`.
 

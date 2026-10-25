@@ -32,6 +32,7 @@ DEFAULTS = {
     "language": "auto",  # auto | en | de
     "hotkey": "<Control><Alt>space",
     "local_only": False,  # never contact external providers
+    "check_components": True,  # offer to install missing LM Studio / Hermes at start
     "routing": "auto",  # auto | local | hermes | provider:<id>
     "lmstudio": {
         "url": "http://localhost:1234",

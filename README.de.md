@@ -13,6 +13,7 @@ Ein per Tastenkombination aufrufbares Overlay für Ubuntu (GNOME), das den Deskt
 - **Hermes-Anbindung** für aktionsorientierte Aufgaben („öffne…“, „installiere…“, „erstelle eine Datei…“) über den OpenAI-kompatiblen API-Server von Hermes.
 - **Externe Modelle** (Claude, ChatGPT, Copilot/GitHub Models, eigene OpenAI-kompatible Endpunkte) als feste Route oder als Fallback, wenn LM Studio nicht läuft.
 - **„Nur lokal“-Schalter**, der garantiert, dass keine Anfrage den Rechner verlässt.
+- **Installation beim Start:** Wird LM Studio (Headless-Daemon + `lms`-CLI) oder Hermes auf diesem Rechner nicht gefunden, fragt die App, ob es mit dem offiziellen Installationsskript des Herstellers installiert werden soll. Der genaue Befehl wird vorher angezeigt; ohne Bestätigung wird nichts installiert. In den Einstellungen abschaltbar.
 - **Rechtsklick-Einstellungen** im Overlay für alle Endpunkte, Schlüssel und Optionen.
 - **Mehrsprachige Oberfläche:** Englisch und Deutsch (automatisch erkannt, umschaltbar). Neue Sprachen benötigen nur ein weiteres Wörterbuch in `i18n.py`.
 

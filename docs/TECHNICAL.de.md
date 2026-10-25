@@ -33,6 +33,8 @@ flowchart LR
 | `settings_dialog.py` | Einstellungsfenster mit Reitern (Allgemein, LM Studio, Hermes, Externe Modelle) |
 | `tray.py` | StatusNotifierItem + `com.canonical.dbusmenu` über `Gio.DBusConnection` |
 | `hotkey.py` | Registriert einen GNOME-Shortcut über `gsettings` (`Gio.Settings`) |
+| `installer.py` | Erkennt ein fehlendes lokales LM Studio / Hermes (entfernte Endpunkte werden ignoriert) und führt das offizielle Installationsskript (`curl -fsSL <url> \| bash`) in einem Thread aus, mit Live-Ausgabe; nach LM Studio folgt `lms server start` |
+| `install_window.py` | Modales Fortschrittsfenster mit Live-Log der Installation |
 | `i18n.py` | `STRINGS`-Wörterbücher pro Sprache, `t(key)`, Spracherkennung |
 
 ## Ablauf einer Anfrage
