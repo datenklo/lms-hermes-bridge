@@ -10,7 +10,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - Automatic background start of the local LM Studio server and the Hermes gateway when they are down (at launch and on demand); switchable in the settings.
 - Editable "Hermes keywords" list (settings tab) that decides which requests go to Hermes, with a broad built-in default list of typical user actions in English and German. Whole-word matching, trailing `*` for word forms, articles between words are ignored.
 
+### Fixed
+- The global hotkey did nothing when the app was started from a source checkout: the stored shortcut command lacked `PYTHONPATH`. The command is now self-contained, repaired automatically at app start, and registered when settings are saved (not only via the button).
+
 ### Changed
+- Settings: new "Routines" tab (master switch, weather and help switches, default weather location). The hotkey field validates the key combination and reports conflicts with other GNOME shortcuts.
 - The prompt window is placed at the top centre of the screen (via XWayland on Wayland sessions).
 - Keyword lists are split by language (`agent_keywords` is now `{en, de}`; old flat lists are migrated). The settings tab shows only the list of the current UI language; all lists are used for matching.
 - Modernized minimal look: flat search field with icon, animated answer area, rounded corners, calmer settings window.

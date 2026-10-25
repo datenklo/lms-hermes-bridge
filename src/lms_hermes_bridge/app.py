@@ -6,7 +6,7 @@ import gi
 gi.require_version("Gtk", "4.0")
 from gi.repository import Gdk, Gio, GLib, Gtk  # noqa: E402
 
-from . import APP_ID, __version__, config as cfgmod, installer, lmstudio, providers, router, routines, services  # noqa: E402
+from . import APP_ID, __version__, config as cfgmod, hotkey, installer, lmstudio, providers, router, routines, services  # noqa: E402
 from .i18n import set_language, t  # noqa: E402
 from .install_window import InstallWindow  # noqa: E402
 from .placement import move_to_top  # noqa: E402
@@ -230,6 +230,7 @@ class BridgeApp(Gtk.Application):
             act.connect("activate", cb)
             self.add_action(act)
         self.hold()  # stay alive while the overlay is hidden
+        hotkey.refresh_command()
         try:
             self.tray = Tray(self._tray_toggle, [(lambda: t("settings"), self.open_settings),
                                            (lambda: t("about"), self.open_about),

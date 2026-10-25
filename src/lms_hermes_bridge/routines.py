@@ -464,8 +464,8 @@ def handle(prompt: str, cfg: dict, fetch=None, probe=None, today: date | None = 
     """Returns a Result when a built-in routine answers the prompt, else None."""
     if not cfg.get("routines_enabled", True):
         return None
-    if is_help(prompt):
+    if is_help(prompt) and cfg.get("routine_help", True):
         return help_result(prompt, cfg, detect_lang(prompt), probe or default_probe)
-    if is_weather(prompt):
+    if is_weather(prompt) and cfg.get("routine_weather", True):
         return weather(prompt, cfg, detect_lang(prompt), fetch or _http_json, today or date.today())
     return None

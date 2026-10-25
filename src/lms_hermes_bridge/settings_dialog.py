@@ -48,6 +48,7 @@ class SettingsWindow(Gtk.Window):
         nb.append_page(self._general(), Gtk.Label(label=t("tab_general")))
         nb.append_page(self._lmstudio(), Gtk.Label(label=t("tab_lmstudio")))
         nb.append_page(self._hermes(), Gtk.Label(label=t("tab_hermes")))
+        nb.append_page(self._routines(), Gtk.Label(label=t("tab_routines")))
         nb.append_page(self._keywords(), Gtk.Label(label=t("tab_keywords")))
         nb.append_page(self._providers_tab(), Gtk.Label(label=t("tab_providers")))
         box.append(nb)
@@ -78,10 +79,6 @@ class SettingsWindow(Gtk.Window):
         self.w_autostart = _row(g, t("autostart_backends"), Gtk.Switch(halign=Gtk.Align.START))
         self.w_autostart.set_active(self.cfg["autostart_backends"])
 
-        self.w_routines = _row(g, t("routines_enabled"), Gtk.Switch(halign=Gtk.Align.START))
-        self.w_routines.set_active(self.cfg["routines_enabled"])
-        self.w_weather_loc = _row(g, t("weather_location"), _entry(self.cfg["weather_location"]))
-
         self.w_routing = _row(g, t("routing"), Gtk.DropDown())
         self._fill_routing()
 
@@ -95,6 +92,16 @@ class SettingsWindow(Gtk.Window):
         hk.append(btn)
         _row(g, t("hotkey"), hk)
         _row(g, "", self.w_hk_status)
+        return g
+
+    def _routines(self):
+        c = self.cfg
+        g = _grid()
+        _row(g, "", Gtk.Label(label=t("routines_hint"), xalign=0, wrap=True, css_classes=["dim-label"]))
+        self.w_routines = _row(g, t("routines_enabled"), Gtk.Switch(halign=Gtk.Align.START, active=c["routines_enabled"]))
+        self.w_r_weather = _row(g, t("routine_weather_on"), Gtk.Switch(halign=Gtk.Align.START, active=c["routine_weather"]))
+        self.w_weather_loc = _row(g, t("weather_location"), _entry(c["weather_location"]))
+        self.w_r_help = _row(g, t("routine_help_on"), Gtk.Switch(halign=Gtk.Align.START, active=c["routine_help"]))
         return g
 
     def _fill_routing(self):
@@ -193,8 +200,14 @@ class SettingsWindow(Gtk.Window):
 
     # -- actions ------------------------------------------------------
     def _apply_hotkey(self, *_):
-        ok = hotkey.register(self.w_hotkey.get_text().strip())
-        self.w_hk_status.set_text(t("hotkey_ok" if ok else "hotkey_fail"))
+        accel = self.w_hotkey.get_text().strip()
+        if not hotkey.is_valid(accel):
+            self.w_hk_status.set_text(t("hotkey_invalid"))
+            return
+        ok = hotkey.register(accel)
+        used = hotkey.conflicts(accel) if ok else []
+        self.w_hk_status.set_text(t("hotkey_conflict", names=", ".join(used)) if used
+                                  else t("hotkey_ok" if ok else "hotkey_fail"))
 
     def _save(self, *_):
         c = self.cfg
@@ -203,8 +216,12 @@ class SettingsWindow(Gtk.Window):
         c["check_components"] = self.w_check.get_active()
         c["autostart_backends"] = self.w_autostart.get_active()
         c["routines_enabled"] = self.w_routines.get_active()
+        c["routine_weather"] = self.w_r_weather.get_active()
+        c["routine_help"] = self.w_r_help.get_active()
         c["weather_location"] = self.w_weather_loc.get_text().strip()
         c["hotkey"] = self.w_hotkey.get_text().strip()
+        if hotkey.is_valid(c["hotkey"]) and hotkey.current_binding() != c["hotkey"]:
+            hotkey.register(c["hotkey"])  # saving must be enough; the button only gives feedback
         l = c["lmstudio"]
         l["url"] = self.w_lms_url.get_text().strip()
         l["auto_load"] = self.w_lms_load.get_active()

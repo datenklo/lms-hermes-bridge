@@ -63,6 +63,8 @@ DEFAULTS = {
     "check_components": True,  # offer to install missing LM Studio / Hermes at start
     "autostart_backends": True,  # start local LM Studio server / Hermes gateway in the background when down
     "routines_enabled": True,  # built-in answers without an LLM: weather, help
+    "routine_weather": True,
+    "routine_help": True,
     "weather_location": "",  # used when a weather question names no place
     "routing": "auto",  # auto | local | hermes | provider:<id>
     "lmstudio": {

@@ -135,3 +135,9 @@ def test_no_false_positives_and_switch():
               "Erkläre den Regenbogen", "Öffne den Browser"]:
         assert run(p) is None, p
     assert run("Was kann dieses Tool?", routines_enabled=False) is None
+
+
+def test_individual_routines_can_be_switched_off():
+    assert run("Was kann dieses Tool?", routine_help=False) is None
+    assert run("Wetter in Berlin", routine_weather=False) is None
+    assert run("Wetter in Berlin") is not None

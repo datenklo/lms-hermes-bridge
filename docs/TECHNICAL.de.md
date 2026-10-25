@@ -77,6 +77,8 @@ Das Item meldet sich beim `org.kde.StatusNotifierWatcher` an und registriert sic
 
 ## Tastenkombination
 
+`hotkey.py` prüft Kürzel mit `Gtk.accelerator_parse`, listet Konflikte über die GNOME-Keybinding-Schemas und schreibt als Befehl `env PYTHONPATH=<src> python3 -m lms_hermes_bridge` (Quellcode-Checkout) bzw. das installierte `lms-hermes-bridge`. `refresh_command()` repariert einen veralteten Befehl beim Start.
+
 Wayland erlaubt keine anwendungsweiten globalen Shortcuts. Die App registriert deshalb einen GNOME-Shortcut (`org.gnome.settings-daemon.plugins.media-keys`), dessen Befehl die App startet. Die primäre Instanz erhält die Aktivierung und blendet das Fenster ein oder aus.
 
 ## Konfigurationsschema

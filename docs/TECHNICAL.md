@@ -77,6 +77,8 @@ The item registers with `org.kde.StatusNotifierWatcher` and re-registers wheneve
 
 ## Hotkey
 
+`hotkey.py` validates accelerators with `Gtk.accelerator_parse`, lists conflicts across the GNOME keybinding schemas, and writes the command as `env PYTHONPATH=<src> python3 -m lms_hermes_bridge` for source checkouts (the installed `lms-hermes-bridge` executable otherwise). `refresh_command()` repairs a stale command at startup.
+
 Wayland forbids application-wide global shortcuts, so the app registers a GNOME custom keybinding (`org.gnome.settings-daemon.plugins.media-keys`) whose command launches the app. The primary instance receives the activation and toggles the window.
 
 ## Configuration schema
