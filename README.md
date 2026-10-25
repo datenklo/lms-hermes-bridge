@@ -5,7 +5,7 @@ A hotkey-driven launcher overlay for Ubuntu (GNOME) that bridges your desktop, [
 ## Features
 
 - **Global hotkey** (default `Ctrl+Alt+Space`) toggles a floating, search-bar style window. `Esc` or clicking elsewhere dismisses it.
-- **Tray icon** (stylized brain): left click opens the prompt window, right click opens the settings dialog. Uses the StatusNotifierItem protocol, which Ubuntu's built-in AppIndicator extension supports.
+- **Tray icon** (stylized brain): left click opens the prompt window, right click shows a menu with Settings, About (GitHub link, license) and Quit. Uses the StatusNotifierItem protocol, which Ubuntu's built-in AppIndicator extension supports.
 - **Automatic model selection for LM Studio.** Every prompt is classified (`fast`, `balanced`, `deep`, `code`, `agent`) and routed to the best fitting model with tier-specific parameters (context length, temperature, max tokens).
 - **Fast by design.** An already loaded model that fits the request is preferred over loading a new one; models that do not fit your RAM are skipped; models are loaded through the `lms` CLI only when needed.
 - **Hermes integration** for action-oriented tasks ("open…", "install…", "create a file…") via Hermes' OpenAI-compatible API server.

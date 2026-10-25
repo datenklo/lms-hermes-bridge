@@ -6,10 +6,12 @@ import gi
 gi.require_version("Gtk", "4.0")
 from gi.repository import Gdk, Gio, GLib, Gtk  # noqa: E402
 
-from . import APP_ID, config as cfgmod, lmstudio, providers, router  # noqa: E402
+from . import APP_ID, __version__, config as cfgmod, lmstudio, providers, router  # noqa: E402
 from .i18n import set_language, t  # noqa: E402
 from .settings_dialog import SettingsWindow  # noqa: E402
-from .tray import Tray  # noqa: E402
+from .tray import ICON_DIR, Tray  # noqa: E402
+
+GITHUB_URL = "https://github.com/datenklo/lms-hermes-bridge"
 
 CSS = b"""
 window.bridge { background: alpha(@window_bg_color, 0.97); border-radius: 18px;
@@ -57,6 +59,7 @@ class BridgeWindow(Gtk.ApplicationWindow):
 
         menu = Gio.Menu()
         menu.append(t("settings"), "app.settings")
+        menu.append(t("about"), "app.about")
         menu.append(t("quit"), "app.quit")
         self.popover = Gtk.PopoverMenu.new_from_model(menu)
         self.popover.set_parent(box)
@@ -170,13 +173,16 @@ class BridgeApp(Gtk.Application):
         prov.load_from_data(CSS)
         Gtk.StyleContext.add_provider_for_display(Gdk.Display.get_default(), prov,
                                                   Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
-        for name, cb in (("settings", self.open_settings), ("quit", lambda *_: self.quit())):
+        for name, cb in (("settings", self.open_settings), ("about", self.open_about),
+                         ("quit", lambda *_: self.quit())):
             act = Gio.SimpleAction.new(name, None)
             act.connect("activate", cb)
             self.add_action(act)
         self.hold()  # stay alive while the overlay is hidden
         try:
-            self.tray = Tray(self._tray_toggle, [(lambda: t("settings"), self.open_settings), (lambda: t("quit"), self.quit)])
+            self.tray = Tray(self._tray_toggle, [(lambda: t("settings"), self.open_settings),
+                                           (lambda: t("about"), self.open_about),
+                                           (lambda: t("quit"), self.quit)])
             self.tray.start()
         except Exception:
             self.tray = None  # no D-Bus session: run without tray icon
@@ -205,6 +211,19 @@ class BridgeApp(Gtk.Application):
     def open_settings(self, *_):
         self._ensure_window()
         SettingsWindow(self.win, self.cfg, self._reload).present()
+
+    def open_about(self, *_):
+        self._ensure_window()
+        dlg = Gtk.AboutDialog(
+            transient_for=self.win, modal=True, program_name="LMS Hermes Bridge", version=__version__,
+            comments=t("about_comments"), website=GITHUB_URL, website_label="GitHub",
+            license_type=Gtk.License.MIT_X11, copyright="© 2026 datenklo",
+        )
+        try:
+            dlg.set_logo(Gdk.Texture.new_from_filename(f"{ICON_DIR}/lms-hermes-bridge-brain.svg"))
+        except GLib.Error:
+            pass
+        dlg.present()
 
     def _reload(self):
         set_language(self.cfg["language"])
