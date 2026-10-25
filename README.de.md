@@ -37,7 +37,7 @@ In den Einstellungen lässt sich das Routing überschreiben: immer LM Studio, im
 
 ## Voraussetzungen
 
-- Ubuntu 24.04+ mit GNOME (X11 oder Wayland)
+- Ubuntu 24.04+ mit GNOME (X11 oder Wayland; unter Wayland läuft die App über XWayland, damit das Fenster oben platziert werden kann)
 - `python3-gi` und `gir1.2-gtk-4.0`
 - LM Studio mit aktiviertem lokalem Server (Standard `http://localhost:1234`) und der `lms`-CLI (`~/.lmstudio/bin/lms`)
 - Optional: ein laufender Hermes-Agent-API-Server
@@ -61,9 +61,11 @@ Rechtsklick auf das Overlay oder das Trayicon, dann **Einstellungen…**:
 
 | Reiter | Optionen |
 |--------|----------|
-| Allgemein | Sprache, Nur-lokal-Modus, Routing, globale Tastenkombination |
+| Allgemein | Sprache, Nur-lokal-Modus, Routing, globale Tastenkombination (mit Prüfung und Konfliktanzeige), Installationsprüfung beim Start, automatischer Start von LM Studio/Hermes |
 | LM Studio | API-URL, automatisches Laden, andere Modelle entladen, Modell-Überschreibung pro Stufe |
 | Hermes | Aktivieren, Chat-Endpunkt-URL, API-Schlüssel, Modellname |
+| Routinen | Tabelle aller Routinen: Stichwörter, Aktion, Wert; Hauptschalter; Standardort für das Wetter |
+| Hermes-Stichwörter | Wörter/Wortgruppen (je Oberflächensprache), die eine Anfrage an Hermes schicken |
 | Externe Modelle | Vorlagen (Claude, ChatGPT, Copilot) oder eigene Endpunkte mit URL, Schlüssel und Modell |
 
 Die Einstellungen liegen in `~/.config/lms-hermes-bridge/config.json` (Dateirechte `0600`; API-Schlüssel stehen dort im Klartext).

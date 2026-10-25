@@ -98,7 +98,14 @@ Wayland forbids application-wide global shortcuts, so the app registers a GNOME 
                 "preferred_fast|balanced|deep|code": "" },
   "hermes": { "enabled": false, "endpoint": "...", "api_key": "", "model": "" },
   "providers": [ { "id": "", "name": "", "kind": "openai|anthropic",
-                   "endpoint": "", "api_key": "", "model": "", "enabled": true } ]
+                   "endpoint": "", "api_key": "", "model": "", "enabled": true } ],
+  "check_components": true,
+  "autostart_backends": true,
+  "routines_enabled": true,
+  "weather_location": "",
+  "routines": [ { "id": "", "name": "", "enabled": true, "keywords": ["..."],
+                  "action": "weather|help|answer|command|url|hermes|llm", "value": "" } ],
+  "agent_keywords": { "en": ["..."], "de": ["..."] }
 }
 ```
 

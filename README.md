@@ -37,7 +37,7 @@ You can override automatic routing in settings: always LM Studio, always Hermes,
 
 ## Requirements
 
-- Ubuntu 24.04+ with GNOME (X11 or Wayland)
+- Ubuntu 24.04+ with GNOME (X11 or Wayland; on Wayland the app runs through XWayland so the window can be placed at the top)
 - `python3-gi` and `gir1.2-gtk-4.0`
 - LM Studio with its local server enabled (default `http://localhost:1234`) and the `lms` CLI (`~/.lmstudio/bin/lms`)
 - Optional: a running Hermes agent API server
@@ -61,9 +61,11 @@ Right-click the overlay and choose **Settings…**:
 
 | Tab | Options |
 |-----|---------|
-| General | Language, local-only mode, routing, global hotkey |
+| General | Language, local-only mode, routing, global hotkey (validated, conflicts shown), install check at start, automatic start of LM Studio/Hermes |
 | LM Studio | API URL, auto-load, unload others, per-tier model overrides |
 | Hermes | Enable, chat endpoint URL, API key, model name |
+| Routines | Table of all routines: keywords, action, value; master switch; default weather location |
+| Hermes keywords | Words/phrases (per UI language) that send a request to Hermes |
 | External models | Add presets (Claude, ChatGPT, Copilot) or custom endpoints with URL, key and model |
 
 Settings are stored in `~/.config/lms-hermes-bridge/config.json` (file mode `0600`, API keys are stored in plain text there).

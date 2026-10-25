@@ -3,23 +3,35 @@
 All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [0.3.0] - 2026-10-25
 
 ### Added
-- Routines table in the settings: every routine has keywords and an action; users can define their own (show text, run program without shell, open URL, send to Hermes, ask the model with a prompt template; placeholders `{input}`, `{prompt}`, `{home}`, `{date}`, `{time}`). Built-in weather/help rows can be disabled or extended with keywords. Example rows ship enabled: web search, file manager, translate. Old `routine_weather`/`routine_help` flags are migrated.
-- Built-in routines answered without an LLM: weather (Open-Meteo; places, today/tomorrow/weekday/date/weekend/next days, rain and snow questions, ambiguous places via "City, Region", default location, local-only aware) and help (feature overview with live status, topic help for hotkey, providers, Hermes, local-only, keywords, models, weather). Switchable in the settings.
-- Automatic background start of the local LM Studio server and the Hermes gateway when they are down (at launch and on demand); switchable in the settings.
-- Editable "Hermes keywords" list (settings tab) that decides which requests go to Hermes, with a broad built-in default list of typical user actions in English and German. Whole-word matching, trailing `*` for word forms, articles between words are ignored.
-
-### Fixed
-- The global hotkey did nothing when the app was started from a source checkout: the stored shortcut command lacked `PYTHONPATH`. The command is now self-contained, repaired automatically at app start, and registered when settings are saved (not only via the button).
+- **Routines table** in the settings: every routine has keywords and an action. Users can define their own rows
+  (show text, run program without a shell, open URL, send to Hermes, ask the model with a prompt template;
+  placeholders `{input}`, `{prompt}`, `{home}`, `{date}`, `{time}`). Built-in rows can be disabled or extended with
+  keywords. Example rows ship enabled: web search, file manager, translate.
+- **Built-in routines** answered without an LLM: weather (Open-Meteo; place, today/tomorrow/weekday/date/weekend/
+  next days, rain and snow questions, ambiguous places via "City, Region", default location, local-only aware) and
+  help (feature overview with live status, topic help for hotkey, providers, Hermes, local-only, keywords, models,
+  weather).
+- **Editable Hermes keyword list** (settings tab) with a broad default list of typical user actions, split into
+  English and German. Whole-word matching, trailing `*` for word forms, filler articles are ignored. The tab shows
+  only the list of the current UI language; all lists are used for matching.
+- **Automatic background start** of the local LM Studio server and the Hermes gateway when they are down (at launch
+  and on demand). Switchable in the settings.
+- **Prompt window at the top centre** of the screen (on Wayland the app runs through XWayland).
+- Hotkey field validates the key combination and reports conflicts with other GNOME shortcuts.
+- Minimal, modern look: flat search field with icon, animated answer area, rounded corners, calmer settings window.
 
 ### Changed
-- Settings: new "Routines" tab (master switch, weather and help switches, default weather location). The hotkey field validates the key combination and reports conflicts with other GNOME shortcuts.
-- The prompt window is placed at the top centre of the screen (via XWayland on Wayland sessions).
-- Keyword lists are split by language (`agent_keywords` is now `{en, de}`; old flat lists are migrated). The settings tab shows only the list of the current UI language; all lists are used for matching.
-- Modernized minimal look: flat search field with icon, animated answer area, rounded corners, calmer settings window.
-- Hermes routing no longer uses a hard-coded pattern; the list lives in the config (`agent_keywords`).
+- `agent_keywords` is now `{en, de}`; old flat lists are migrated. The two `routine_weather`/`routine_help` flags
+  moved into the routines table and are migrated too.
+- Hermes routing no longer uses a hard-coded pattern; the list lives in the config.
+
+### Fixed
+- The global hotkey did nothing when the app was started from a source checkout: the stored shortcut command lacked
+  `PYTHONPATH`. The command is now self-contained, repaired automatically at app start and registered when the
+  settings are saved (not only via the button).
 
 ## [0.2.0] - 2026-10-25
 
@@ -43,5 +55,6 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - English and German user interface.
 - English and German README, technical documentation, installer script, unit tests for the routing logic.
 
+[0.3.0]: https://github.com/datenklo/lms-hermes-bridge/releases/tag/v0.3.0
 [0.2.0]: https://github.com/datenklo/lms-hermes-bridge/releases/tag/v0.2.0
 [0.1.0]: https://github.com/datenklo/lms-hermes-bridge/releases/tag/v0.1.0
