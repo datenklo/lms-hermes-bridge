@@ -56,6 +56,26 @@ DEFAULT_AGENT_KEYWORDS = {
     ],
 }
 
+BUILTIN_ROUTINES = ("builtin:weather", "builtin:help")
+ACTIONS = ("weather", "help", "answer", "command", "url", "hermes", "llm")
+
+# Built-in rows only add extra keywords (their own detection stays on); the others are fully user-defined.
+DEFAULT_ROUTINES = [
+    {"id": "builtin:weather", "name": "Weather", "enabled": True, "keywords": [], "action": "weather", "value": ""},
+    {"id": "builtin:help", "name": "Help", "enabled": True, "keywords": [], "action": "help", "value": ""},
+    {"id": "example:search", "name": "Web search", "enabled": True,
+     "keywords": ["suche im web nach", "suche im internet nach", "search the web for", "web search"],
+     "action": "url", "value": "https://duckduckgo.com/?q={input}"},
+    {"id": "example:files", "name": "File manager", "enabled": True,
+     "keywords": ["dateimanager", "file manager", "files app"],
+     "action": "command", "value": "xdg-open {home}"},
+    {"id": "example:translate", "name": "Translate", "enabled": True,
+     "keywords": ["\u00fcbersetze*", "translate*"],
+     "action": "llm",
+     "value": "Translate the following text. If it is German, translate it to English, otherwise to German. "
+              "Reply with the translation only:\n{input}"},
+]
+
 DEFAULTS = {
     "language": "auto",  # auto | en | de
     "hotkey": "<Control><Alt>space",
@@ -63,9 +83,8 @@ DEFAULTS = {
     "check_components": True,  # offer to install missing LM Studio / Hermes at start
     "autostart_backends": True,  # start local LM Studio server / Hermes gateway in the background when down
     "routines_enabled": True,  # built-in answers without an LLM: weather, help
-    "routine_weather": True,
-    "routine_help": True,
     "weather_location": "",  # used when a weather question names no place
+    "routines": copy.deepcopy(DEFAULT_ROUTINES),  # table in the settings: keywords -> action
     "routing": "auto",  # auto | local | hermes | provider:<id>
     "lmstudio": {
         "url": "http://localhost:1234",
@@ -109,11 +128,42 @@ def _migrate(cfg: dict) -> dict:
     return cfg
 
 
+def normalize_routines(cfg: dict) -> dict:
+    """Drops malformed rows and makes sure the built-in rows exist."""
+    rows = []
+    for r in cfg.get("routines") or []:
+        if not isinstance(r, dict) or r.get("action") not in ACTIONS:
+            continue
+        rows.append({
+            "id": str(r.get("id") or f"custom:{len(rows)}"),
+            "name": str(r.get("name") or ""),
+            "enabled": bool(r.get("enabled", True)),
+            "keywords": [str(k).strip() for k in r.get("keywords", []) if str(k).strip()],
+            "action": r["action"],
+            "value": str(r.get("value") or ""),
+        })
+    have = {r["id"] for r in rows}
+    rows += [copy.deepcopy(d) for d in DEFAULT_ROUTINES if d["id"] in BUILTIN_ROUTINES and d["id"] not in have]
+    cfg["routines"] = rows
+    return cfg
+
+
+def _migrate_routine_flags(raw: dict) -> None:
+    """Older configs had two switches instead of the table."""
+    if "routines" in raw:
+        return
+    flags = {"builtin:weather": raw.pop("routine_weather", True), "builtin:help": raw.pop("routine_help", True)}
+    if not all(flags.values()):
+        raw["routines"] = [dict(d, enabled=flags.get(d["id"], d["enabled"])) for d in DEFAULT_ROUTINES]
+
+
 def load() -> dict:
     try:
-        return _merge(DEFAULTS, _migrate(json.loads(CONFIG_FILE.read_text())))
+        raw = _migrate(json.loads(CONFIG_FILE.read_text()))
+        _migrate_routine_flags(raw)
+        return normalize_routines(_merge(DEFAULTS, raw))
     except (OSError, ValueError):
-        return copy.deepcopy(DEFAULTS)
+        return normalize_routines(copy.deepcopy(DEFAULTS))
 
 
 def save(cfg: dict) -> None:

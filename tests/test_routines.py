@@ -137,7 +137,97 @@ def test_no_false_positives_and_switch():
     assert run("Was kann dieses Tool?", routines_enabled=False) is None
 
 
-def test_individual_routines_can_be_switched_off():
-    assert run("Was kann dieses Tool?", routine_help=False) is None
-    assert run("Wetter in Berlin", routine_weather=False) is None
+def rows(*extra, disable=()):
+    base = [dict(r, enabled=r["id"] not in disable) for r in copy.deepcopy(DEFAULTS["routines"])]
+    return list(extra) + base
+
+
+def row(action, keywords, value="", id_="custom:t", enabled=True, name="Test"):
+    return {"id": id_, "name": name, "enabled": enabled, "keywords": keywords, "action": action, "value": value}
+
+
+def test_builtin_rows_can_be_switched_off():
+    assert run("Was kann dieses Tool?", routines=rows(disable=("builtin:help",))) is None
+    assert run("Wetter in Berlin", routines=rows(disable=("builtin:weather",))) is None
     assert run("Wetter in Berlin") is not None
+
+
+def test_builtin_rows_accept_extra_keywords():
+    r = rows()
+    r[0]["keywords"] = ["himmel"]
+    assert run("Wie ist der Himmel in Berlin", routines=r).name == "weather"
+    assert run("Wie ist der Himmel in Berlin") is None
+
+
+def test_custom_answer_with_placeholders():
+    res = run("zeig mir den code für Lisa", routines=rows(row("answer", ["zeig mir den code für"], "Code für {input}!")))
+    assert res.name == "custom" and res.text == "Code für Lisa!" and res.label == "Test"
+
+
+def test_custom_rows_win_over_builtins_and_disabled_rows_are_ignored():
+    mine = row("answer", ["wetter"], "mein Wetter")
+    assert run("Wetter in Berlin", routines=rows(mine)).text == "mein Wetter"
+    assert run("Wetter in Berlin", routines=rows(dict(mine, enabled=False))).name == "weather"
+
+
+def test_url_action_encodes_input_and_blocks_bad_schemes():
+    calls = []
+    launcher = calls.append
+    c = cfg(routines=rows(row("url", ["suche"], "https://example.org/?q={input}")))
+    res = routines.handle("suche Katzen & Hunde", c, launcher=launcher)
+    assert calls == [["xdg-open", "https://example.org/?q=Katzen+%26+Hunde"]] and ("Geöffnet" in res.text or "Opened" in res.text)
+    bad = cfg(routines=rows(row("url", ["evil"], "javascript:alert({input})")))
+    assert "http" in routines.handle("evil 1", bad, launcher=launcher).text and len(calls) == 1  # refused, nothing spawned
+
+
+def test_command_action_has_no_shell_injection():
+    calls = []
+    c = cfg(routines=rows(row("command", ["öffne notiz"], "gedit --new-window {input}")))
+    res = routines.handle("öffne notiz a.txt; rm -rf ~", c, launcher=calls.append)
+    assert calls == [["gedit", "--new-window", "a.txt; rm -rf ~"]] and ("Gestartet" in res.text or "Started" in res.text)
+
+
+def test_command_errors_are_reported():
+    def missing(argv):
+        raise FileNotFoundError(argv[0])
+    c = cfg(routines=rows(row("command", ["start x"], "nonexistent-prog")))
+    assert any(w in routines.handle("start x", c, launcher=missing).text for w in ("nicht gefunden", "not found"))
+    bad = cfg(routines=rows(row("command", ["start y"], 'echo "unclosed')))
+    assert any(w in routines.handle("start y", bad, launcher=lambda a: None).text for w in ("ungültig", "invalid"))
+    empty = cfg(routines=rows(row("command", ["start z"], "")))
+    assert any(w in routines.handle("start z", empty, launcher=lambda a: None).text for w in ("keine Aktion", "no action"))
+
+
+def test_hermes_and_llm_actions_redirect_the_prompt():
+    c = cfg(routines=rows(row("hermes", ["erledige"], "Do this on my PC: {input}"),
+                          row("llm", ["übersetze*"], "Translate: {input}", id_="custom:u")))
+    h = routines.handle("erledige Backup machen", c)
+    assert isinstance(h, routines.Redirect) and h.backend == "hermes" and h.prompt == "Do this on my PC: Backup machen"
+    u = routines.handle("Übersetze Hallo Welt", c)
+    assert u.backend == "auto" and u.prompt == "Translate: Hallo Welt"
+
+
+def test_default_example_rows_work():
+    calls = []
+    assert routines.handle("suche im web nach Katzenfotos", cfg(), launcher=calls.append).name == "custom"
+    assert calls[0][0] == "xdg-open" and calls[0][1].endswith("q=Katzenfotos")
+    assert isinstance(routines.handle("Translate good morning", cfg()), routines.Redirect)
+
+
+def test_input_text_and_fill():
+    from lms_hermes_bridge.keywords import find
+    m = find("Bitte suche im web nach Katzen!", ["suche im web nach"])
+    assert routines.input_text("Bitte suche im web nach Katzen!", m) == "Bitte Katzen"
+    assert routines.fill("{input}-{input}", "p", "{home}") == "{home}-{home}"  # inserted text is not re-expanded
+    assert routines.fill("{prompt}", "a b&c", "x", quote=True) == "a+b%26c"
+
+
+def test_config_normalizes_and_migrates_routines():
+    from lms_hermes_bridge import config
+    c = config.normalize_routines({"routines": [{"id": "x", "action": "bogus"}, {"id": "ok", "action": "answer",
+                                   "keywords": ["a", " "], "value": 5}, "junk"]})
+    ids = [r["id"] for r in c["routines"]]
+    assert ids == ["ok", "builtin:weather", "builtin:help"] and c["routines"][0]["keywords"] == ["a"]
+    raw = {"routine_help": False}
+    config._migrate_routine_flags(raw)
+    assert [r["enabled"] for r in raw["routines"][:2]] == [True, False]

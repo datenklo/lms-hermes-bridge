@@ -1,3 +1,6 @@
+import copy
+import uuid
+
 import gi
 
 gi.require_version("Gtk", "4.0")
@@ -35,7 +38,7 @@ def _entry(text: str, secret: bool = False) -> Gtk.Entry:
 class SettingsWindow(Gtk.Window):
     def __init__(self, parent, cfg: dict, on_save):
         super().__init__(title=t("settings").rstrip("…"), transient_for=parent, modal=True)
-        self.set_default_size(660, 560)
+        self.set_default_size(980, 620)
         self.add_css_class("settings")
         self.cfg = cfg
         self.on_save = on_save
@@ -94,15 +97,103 @@ class SettingsWindow(Gtk.Window):
         _row(g, "", self.w_hk_status)
         return g
 
+    # -- routines table ---------------------------------------------------
+    CUSTOM_ACTIONS = ("answer", "command", "url", "hermes", "llm")
+
     def _routines(self):
         c = self.cfg
-        g = _grid()
-        _row(g, "", Gtk.Label(label=t("routines_hint"), xalign=0, wrap=True, css_classes=["dim-label"]))
-        self.w_routines = _row(g, t("routines_enabled"), Gtk.Switch(halign=Gtk.Align.START, active=c["routines_enabled"]))
-        self.w_r_weather = _row(g, t("routine_weather_on"), Gtk.Switch(halign=Gtk.Align.START, active=c["routine_weather"]))
-        self.w_weather_loc = _row(g, t("weather_location"), _entry(c["weather_location"]))
-        self.w_r_help = _row(g, t("routine_help_on"), Gtk.Switch(halign=Gtk.Align.START, active=c["routine_help"]))
-        return g
+        outer = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10, margin_top=14, margin_bottom=10,
+                        margin_start=18, margin_end=18)
+        top = Gtk.Grid(row_spacing=10, column_spacing=18)
+        top.row = 0
+        self.w_routines = _row(top, t("routines_enabled"), Gtk.Switch(halign=Gtk.Align.START, active=c["routines_enabled"]))
+        self.w_weather_loc = _row(top, t("weather_location"), _entry(c["weather_location"]))
+        outer.append(top)
+        outer.append(Gtk.Label(label=t("routines_table_hint"), xalign=0, wrap=True, css_classes=["dim-label"]))
+
+        self.rt_grid = Gtk.Grid(row_spacing=8, column_spacing=10)
+        outer.append(Gtk.ScrolledWindow(child=self.rt_grid, vexpand=True, hscrollbar_policy=Gtk.PolicyType.NEVER))
+
+        bar = Gtk.Box(spacing=8)
+        add = Gtk.Button(label=t("add_routine"))
+        add.connect("clicked", self._add_routine)
+        reset = Gtk.Button(label=t("reset_routines"))
+        reset.connect("clicked", lambda *_: self._render_routines(copy.deepcopy(cfgmod.DEFAULT_ROUTINES)))
+        bar.append(add)
+        bar.append(reset)
+        outer.append(bar)
+        self._render_routines(copy.deepcopy(c["routines"]))
+        return outer
+
+    def _action_label(self, action: str) -> str:
+        return t("act_" + action)
+
+    def _render_routines(self, rows: list):
+        grid = self.rt_grid
+        while (child := grid.get_first_child()):
+            grid.remove(child)
+        self.rt_rows = []
+        for col, key in enumerate(("col_on", "col_name", "col_keywords", "col_action", "col_value")):
+            grid.attach(Gtk.Label(label=t(key), xalign=0, css_classes=["dim-label"]), col, 0, 1, 1)
+        for i, row in enumerate(rows, start=1):
+            builtin = row["id"] in cfgmod.BUILTIN_ROUTINES
+            on = Gtk.CheckButton(active=row.get("enabled", True), valign=Gtk.Align.CENTER)
+            name = _entry(self._row_name(row))
+            name.set_width_chars(14)
+            name.set_sensitive(not builtin)
+            kw = _entry(", ".join(row.get("keywords", [])))
+            kw.set_width_chars(26)
+            kw.set_hexpand(True)
+            kw.set_placeholder_text(t("kw_placeholder_builtin" if builtin else "kw_placeholder"))
+            actions = [row["action"]] if builtin else list(self.CUSTOM_ACTIONS)
+            act = Gtk.DropDown.new_from_strings([self._action_label(a) for a in actions])
+            act.set_selected(actions.index(row["action"]) if row["action"] in actions else 0)
+            act.set_sensitive(not builtin)
+            value = _entry(row.get("value", ""))
+            value.set_width_chars(30)
+            value.set_hexpand(True)
+            value.set_sensitive(not builtin)
+            act.connect("notify::selected", lambda w, _p, v=value, a=actions: v.set_placeholder_text(
+                t("ph_" + self._action_of(w, a))))
+            value.set_placeholder_text("" if builtin else t("ph_" + row["action"]))
+            delete = Gtk.Button(icon_name="user-trash-symbolic", css_classes=["flat"], sensitive=not builtin,
+                                tooltip_text=t("remove"))
+            delete.connect("clicked", lambda _b, idx=i - 1: self._delete_routine(idx))
+            for col, w in enumerate((on, name, kw, act, value, delete)):
+                grid.attach(w, col, i, 1, 1)
+            self.rt_rows.append({"id": row["id"], "name": row.get("name", ""), "on": on, "name_w": name,
+                                 "kw": kw, "act": act, "actions": actions, "value": value, "builtin": builtin})
+
+    def _row_name(self, row: dict) -> str:
+        return t("routine_" + row["action"]) if row["id"] in cfgmod.BUILTIN_ROUTINES else row.get("name", "")
+
+    @staticmethod
+    def _action_of(dropdown, actions) -> str:
+        return actions[min(dropdown.get_selected(), len(actions) - 1)]
+
+    def _collect_routines(self) -> list:
+        rows = []
+        for r in self.rt_rows:
+            rows.append({
+                "id": r["id"],
+                "name": r["name"] if r["builtin"] else r["name_w"].get_text().strip(),
+                "enabled": r["on"].get_active(),
+                "keywords": [k.strip() for k in r["kw"].get_text().split(",") if k.strip()],
+                "action": self._action_of(r["act"], r["actions"]),
+                "value": "" if r["builtin"] else r["value"].get_text().strip(),
+            })
+        return rows
+
+    def _add_routine(self, *_):
+        rows = self._collect_routines()
+        rows.append({"id": f"custom:{uuid.uuid4().hex[:8]}", "name": t("new_routine"), "enabled": True,
+                     "keywords": [], "action": "answer", "value": ""})
+        self._render_routines(rows)
+
+    def _delete_routine(self, idx: int):
+        rows = self._collect_routines()
+        del rows[idx]
+        self._render_routines(rows)
 
     def _fill_routing(self):
         labels = [t("route_auto"), t("route_local"), t("route_hermes")]
@@ -216,8 +307,8 @@ class SettingsWindow(Gtk.Window):
         c["check_components"] = self.w_check.get_active()
         c["autostart_backends"] = self.w_autostart.get_active()
         c["routines_enabled"] = self.w_routines.get_active()
-        c["routine_weather"] = self.w_r_weather.get_active()
-        c["routine_help"] = self.w_r_help.get_active()
+        c["routines"] = self._collect_routines()
+        cfgmod.normalize_routines(c)
         c["weather_location"] = self.w_weather_loc.get_text().strip()
         c["hotkey"] = self.w_hotkey.get_text().strip()
         if hotkey.is_valid(c["hotkey"]) and hotkey.current_binding() != c["hotkey"]:

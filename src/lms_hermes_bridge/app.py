@@ -151,8 +151,13 @@ class BridgeWindow(Gtk.ApplicationWindow):
     def _ui(self, fn, *a):
         GLib.idle_add(fn, *a)
 
-    def _resolve_route(self, prompt: str):
+    def _resolve_route(self, prompt: str, force: str | None = None):
         cfg = self.cfg
+        if force == "hermes":
+            if not cfg["hermes"]["enabled"]:
+                return None
+            self._ensure_hermes()
+            return router.Route("hermes", "agent", "routine", cfg["hermes"]["model"])
         url = cfg["lmstudio"]["url"]
         models = lmstudio.list_models(url)
         route = router.decide(prompt, cfg, models, lmstudio.mem_total_bytes())
@@ -161,10 +166,14 @@ class BridgeWindow(Gtk.ApplicationWindow):
             if services.ensure(cfg, "lmstudio"):
                 models = lmstudio.list_models(url)
                 route = router.decide(prompt, cfg, models, lmstudio.mem_total_bytes())
-        if route and route.backend == "hermes" and not services.hermes_up(cfg):
-            self._ui(self._status, t("starting", name="Hermes"))
-            services.ensure(cfg, "hermes")
+        if route and route.backend == "hermes":
+            self._ensure_hermes()
         return route
+
+    def _ensure_hermes(self):
+        if not services.hermes_up(self.cfg):
+            self._ui(self._status, t("starting", name="Hermes"))
+            services.ensure(self.cfg, "hermes")
 
     def _worker(self, prompt: str, cancel: threading.Event):
         cfg = self.cfg
@@ -173,13 +182,18 @@ class BridgeWindow(Gtk.ApplicationWindow):
         except Exception as e:  # a routine bug must never block normal answers
             routine = None
             print(f"routine failed: {e}", file=sys.stderr)
-        if routine:
-            self._ui(self._status, t("routine_label", name=t("routine_" + routine.name)))
+        force = None
+        if isinstance(routine, routines.Redirect):
+            self._ui(self._status, t("routine_label", name=routine.label))
+            prompt, force = routine.prompt, routine.backend
+        elif routine:
+            name = routine.label or t("routine_" + routine.name)
+            self._ui(self._status, t("routine_label", name=name))
             self._ui(self._append, routine.text, cancel)
             return
-        route = self._resolve_route(prompt)
+        route = self._resolve_route(prompt, force if force == "hermes" else None)
         if route is None:
-            key = "err_local_only" if cfg["local_only"] else "err_no_target"
+            key = "err_hermes_off" if force == "hermes" else "err_local_only" if cfg["local_only"] else "err_no_target"
             self._ui(self._status, t(key))
             return
         try:

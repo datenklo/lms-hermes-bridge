@@ -4,9 +4,9 @@ Pure functions, no I/O, so everything here is unit-testable.
 """
 import re
 from dataclasses import dataclass, field
-from functools import lru_cache
 
 from .config import DEFAULT_AGENT_KEYWORDS
+from .keywords import compile_keywords
 from .lmstudio import ModelInfo
 
 CODE_RE = re.compile(
@@ -14,24 +14,6 @@ CODE_RE = re.compile(
     r"javascript|typescript|bash|sql|stack ?trace|exception|programm\w*|funktion|fehler)\b",
     re.I,
 )
-# Spaces inside a keyword phrase tolerate a filler article: "create file" matches "create a file".
-_GAP = r"\s+(?:(?:a|an|the|my|ein|eine|einen|einem|der|die|das|den|dem|mein|meine|meinen)\s+)?"
-
-
-@lru_cache(maxsize=8)
-def _agent_re(keywords: tuple[str, ...]) -> re.Pattern | None:
-    """Whole-word match; a trailing * on a keyword also matches longer forms (install* -> installing)."""
-    parts = []
-    for kw in keywords:
-        kw = kw.strip()
-        if not kw.strip("*"):
-            continue
-        prefix = kw.endswith("*")
-        words = kw.rstrip("*").split()
-        parts.append(_GAP.join(re.escape(w) for w in words) + ("" if prefix else r"(?!\w)"))
-    return re.compile(r"(?<!\w)(?:" + "|".join(parts) + ")", re.I) if parts else None
-
-
 DEEP_RE = re.compile(
     r"\b(analy[sz]e|analysiere|explain in detail|erkläre ausführlich|prove|beweise|plan|plane|"
     r"compare|vergleiche|essay|research|recherchiere|summari[sz]e|fasse .* zusammen|step by step|"
@@ -72,7 +54,7 @@ def _flatten(keywords) -> tuple[str, ...]:
 def classify(prompt: str, agent_keywords: dict | list[str] | None = None) -> tuple[str, str]:
     """Returns (tier, reason). Fast heuristics so routing itself costs nothing."""
     words = len(prompt.split())
-    agent_re = _agent_re(_flatten(agent_keywords))
+    agent_re = compile_keywords(_flatten(agent_keywords))
     if agent_re and agent_re.search(prompt):
         return "agent", "action request"
     if CODE_RE.search(prompt) or "```" in prompt:

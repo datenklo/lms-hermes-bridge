@@ -1,15 +1,20 @@
-"""Built-in routines answered without an LLM: weather forecast and help.
+"""Routines answered before any model is asked: built-in weather/help and user-defined table rows.
 
-Pure parsing plus injectable I/O (`fetch`, `probe`) so everything is unit-testable.
+Pure parsing plus injectable I/O (`fetch`, `probe`, `opener`, `launcher`) so everything is unit-testable.
 """
 import json
 import re
+import shlex
+import subprocess
 import urllib.parse
 import urllib.request
 from dataclasses import dataclass
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
+from pathlib import Path
 
 from . import i18n
+from .config import DEFAULT_ROUTINES
+from .keywords import find
 
 GEO_URL = "https://geocoding-api.open-meteo.com/v1/search"
 FORECAST_URL = "https://api.open-meteo.com/v1/forecast"
@@ -18,9 +23,18 @@ MAX_DAYS = 16
 
 @dataclass
 class Result:
-    name: str  # weather | help
+    name: str  # weather | help | custom
     lang: str
     text: str
+    label: str = ""  # status-line name; empty means the localized built-in name
+
+
+@dataclass
+class Redirect:
+    """A routine that rewrites the prompt and hands it to the normal pipeline."""
+    prompt: str
+    backend: str  # hermes | auto
+    label: str
 
 
 class RoutineError(Exception):
@@ -459,13 +473,101 @@ def is_help(prompt: str) -> bool:
                 or (words <= 14 and _HOWTO.search(prompt) and any(r.search(prompt) for r in TOPICS.values())))
 
 
+# ------------------------------------------------------------ user routines
+R = {
+    "de": {
+        "empty": "Für diese Routine ist keine Aktion hinterlegt.",
+        "started": "Gestartet: {cmd}", "opened": "Geöffnet: {url}",
+        "not_found": "Programm nicht gefunden oder nicht ausführbar: {cmd}",
+        "bad_command": "Der Befehl ist ungültig (Anführungszeichen prüfen).",
+        "bad_url": "Nur http-, https- und mailto-Adressen sind erlaubt.",
+    },
+    "en": {
+        "empty": "This routine has no action configured.",
+        "started": "Started: {cmd}", "opened": "Opened: {url}",
+        "not_found": "Program not found or not executable: {cmd}",
+        "bad_command": "The command is invalid (check the quotes).",
+        "bad_url": "Only http, https and mailto addresses are allowed.",
+    },
+}
+_TOKEN = re.compile(r"\{(input|prompt|home|date|time)\}")
+
+
+def input_text(prompt: str, match: re.Match) -> str:
+    """The prompt without the matched keyword, e.g. 'suche im web nach Katzen' -> 'Katzen'."""
+    rest = re.sub(r"\s+", " ", prompt[:match.start()] + " " + prompt[match.end():])
+    return rest.strip(" \t,.:;!?\"'„“")
+
+
+def fill(template: str, prompt: str, text: str, quote: bool = False) -> str:
+    """Replaces {input} {prompt} {home} {date} {time}; one pass, so inserted text is never re-expanded."""
+    now = datetime.now()
+    values = {
+        "input": text, "prompt": prompt, "home": str(Path.home()),
+        "date": now.strftime("%Y-%m-%d"), "time": now.strftime("%H:%M"),
+    }
+    def repl(m):
+        v = values[m.group(1)]
+        return urllib.parse.quote_plus(v) if quote and m.group(1) in ("input", "prompt") else v
+    return _TOKEN.sub(repl, template)
+
+
+def _spawn(argv: list[str]) -> None:
+    subprocess.Popen(argv, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                     start_new_session=True)
+
+
+def run_custom(row: dict, prompt: str, match: re.Match, lang: str, launcher=None) -> Result | Redirect:
+    m, spawn = R[lang], launcher or _spawn
+    action, value, label = row["action"], row.get("value", "").strip(), row.get("name") or row["action"]
+    text = input_text(prompt, match)
+    if not value:
+        return Result("custom", lang, m["empty"], label)
+    if action == "answer":
+        return Result("custom", lang, fill(value, prompt, text), label)
+    if action in ("hermes", "llm"):
+        return Redirect(fill(value, prompt, text), "hermes" if action == "hermes" else "auto", label)
+    try:
+        if action == "url":
+            url = fill(value, prompt, text, quote=True)
+            if urllib.parse.urlparse(url).scheme not in ("http", "https", "mailto"):
+                return Result("custom", lang, m["bad_url"], label)
+            spawn(["xdg-open", url])
+            return Result("custom", lang, m["opened"].format(url=url), label)
+        # No shell: every argument is substituted separately, so typed text cannot inject commands.
+        argv = [Path(a).expanduser().as_posix() if a.startswith("~") else a
+                for a in (fill(a, prompt, text) for a in shlex.split(value))]
+        if not argv:
+            return Result("custom", lang, m["empty"], label)
+        spawn(argv)
+        return Result("custom", lang, m["started"].format(cmd=shlex.join(argv)), label)
+    except ValueError:
+        return Result("custom", lang, m["bad_command"], label)
+    except OSError:
+        return Result("custom", lang, m["not_found"].format(cmd=value.split()[0] if value.split() else value), label)
+
+
 # ------------------------------------------------------------------ entry
-def handle(prompt: str, cfg: dict, fetch=None, probe=None, today: date | None = None) -> Result | None:
-    """Returns a Result when a built-in routine answers the prompt, else None."""
+def handle(prompt: str, cfg: dict, fetch=None, probe=None, today: date | None = None,
+           launcher=None) -> Result | Redirect | None:
+    """Returns a Result/Redirect when a routine answers the prompt, else None.
+
+    User-defined rows are checked first (explicit intent), then the built-ins, which also accept extra keywords.
+    """
     if not cfg.get("routines_enabled", True):
         return None
-    if is_help(prompt) and cfg.get("routine_help", True):
-        return help_result(prompt, cfg, detect_lang(prompt), probe or default_probe)
-    if is_weather(prompt) and cfg.get("routine_weather", True):
-        return weather(prompt, cfg, detect_lang(prompt), fetch or _http_json, today or date.today())
+    rows = [r for r in cfg.get("routines", DEFAULT_ROUTINES) if r.get("enabled", True)]
+    lang = detect_lang(prompt)
+    for r in rows:
+        if r["action"] in ("weather", "help"):
+            continue
+        match = find(prompt, r.get("keywords", []))
+        if match:
+            return run_custom(r, prompt, match, lang, launcher)
+    for r in rows:
+        extra = find(prompt, r.get("keywords", []))
+        if r["action"] == "help" and (extra or is_help(prompt)):
+            return help_result(prompt, cfg, lang, probe or default_probe)
+        if r["action"] == "weather" and (extra or is_weather(prompt)):
+            return weather(prompt, cfg, lang, fetch or _http_json, today or date.today())
     return None
