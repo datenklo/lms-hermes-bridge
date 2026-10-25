@@ -74,6 +74,7 @@ def test_keywords_are_whole_words_unless_starred():
     assert router.classify("Tell me about opening hours of museums")[0] != "agent"
     assert router.classify("install* is a good stem", ["install*"])[0] == "agent"
     assert router.classify("öffnen wir das Gespräch", ["öffne*"])[0] == "agent"
+    assert router.classify("Öffne den Browser", ["öffne* browser"])[0] == "agent"
 
 
 def test_custom_and_empty_keyword_lists():

@@ -165,8 +165,14 @@ class SettingsWindow(Gtk.Window):
                                  "kw": kw, "act": act, "actions": actions, "value": value, "builtin": builtin})
 
     def _row_name(self, row: dict) -> str:
-        if row["id"] == "builtin:google":
-            return t("routine_google")
+        builtin_labels = {
+            "builtin:google": "routine_google", "builtin:browser": "routine_browser",
+            "builtin:home": "routine_home", "builtin:downloads": "routine_downloads",
+            "builtin:terminal": "routine_terminal", "builtin:calculator": "routine_calculator",
+            "builtin:settings": "routine_settings",
+        }
+        if row["id"] in builtin_labels:
+            return t(builtin_labels[row["id"]])
         return t("routine_" + row["action"]) if row["id"] in cfgmod.BUILTIN_ROUTINES else row.get("name", "")
 
     @staticmethod

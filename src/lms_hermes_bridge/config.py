@@ -56,7 +56,10 @@ DEFAULT_AGENT_KEYWORDS = {
     ],
 }
 
-BUILTIN_ROUTINES = ("builtin:weather", "builtin:help", "builtin:google")
+BUILTIN_ROUTINES = (
+    "builtin:weather", "builtin:help", "builtin:google", "builtin:browser", "builtin:home",
+    "builtin:downloads", "builtin:terminal", "builtin:calculator", "builtin:settings",
+)
 ACTIONS = ("weather", "help", "answer", "command", "url", "hermes", "llm")
 
 # Built-in rows only add extra keywords (their own detection stays on); the others are fully user-defined.
@@ -67,6 +70,24 @@ DEFAULT_ROUTINES = [
      "keywords": ["suche bei google nach", "bei google nach", "google nach", "suche google nach",
                   "google for", "search google for", "google*"],
      "action": "url", "value": "https://www.google.com/search?q={input}"},
+    {"id": "builtin:browser", "name": "Open browser", "enabled": True,
+     "keywords": ["öffne* browser", "browser öffnen", "open browser", "launch browser", "start browser"],
+     "action": "url", "value": "https://www.google.com/"},
+    {"id": "builtin:home", "name": "Open home folder", "enabled": True,
+     "keywords": ["öffne* home-ordner", "öffne* heimordner", "open home folder", "open home directory"],
+     "action": "command", "value": "xdg-open {home}"},
+    {"id": "builtin:downloads", "name": "Open Downloads", "enabled": True,
+     "keywords": ["öffne* downloads", "öffne* download-ordner", "open downloads folder"],
+     "action": "command", "value": "xdg-open {home}/Downloads"},
+    {"id": "builtin:terminal", "name": "Open terminal", "enabled": True,
+     "keywords": ["öffne* terminal", "starte* terminal", "open terminal", "launch terminal"],
+     "action": "command", "value": "x-terminal-emulator"},
+    {"id": "builtin:calculator", "name": "Open calculator", "enabled": True,
+     "keywords": ["öffne* rechner", "starte* rechner", "open calculator", "launch calculator"],
+     "action": "command", "value": "gnome-calculator"},
+    {"id": "builtin:settings", "name": "Open system settings", "enabled": True,
+     "keywords": ["öffne* systemeinstellungen", "öffne* einstellungen", "open system settings"],
+     "action": "command", "value": "gnome-control-center"},
     {"id": "example:search", "name": "Web search", "enabled": True,
      "keywords": ["suche im web nach", "suche im internet nach", "search the web for", "web search"],
      "action": "url", "value": "https://duckduckgo.com/?q={input}"},

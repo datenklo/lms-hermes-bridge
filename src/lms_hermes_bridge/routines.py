@@ -528,8 +528,14 @@ def run_custom(row: dict, prompt: str, match: re.Match, lang: str, launcher=None
                input_override: str | None = None) -> Result | Redirect:
     m, spawn = R[lang], launcher or _spawn
     action, value, label = row["action"], row.get("value", "").strip(), row.get("name") or row["action"]
-    if row.get("id") == "builtin:google":
-        label = i18n.t("routine_google")
+    builtin_labels = {
+        "builtin:google": "routine_google", "builtin:browser": "routine_browser",
+        "builtin:home": "routine_home", "builtin:downloads": "routine_downloads",
+        "builtin:terminal": "routine_terminal", "builtin:calculator": "routine_calculator",
+        "builtin:settings": "routine_settings",
+    }
+    if row.get("id") in builtin_labels:
+        label = i18n.t(builtin_labels[row["id"]])
     text = input_text(prompt, match) if input_override is None else input_override
     if not value:
         return Result("custom", lang, m["empty"], label)

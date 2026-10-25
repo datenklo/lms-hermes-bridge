@@ -132,7 +132,7 @@ def test_help_topics_and_hotkey_formatting():
 
 def test_no_false_positives_and_switch():
     for p in ["Schreibe eine E-Mail an meinen Chef", "help me write a poem about rain", "Hilf mir bei meinem Python-Skript",
-              "Erkläre den Regenbogen", "Öffne den Browser"]:
+              "Erkläre den Regenbogen"]:
         assert run(p) is None, p
     assert run("Was kann dieses Tool?", routines_enabled=False) is None
 
@@ -227,7 +227,9 @@ def test_config_normalizes_and_migrates_routines():
     c = config.normalize_routines({"routines": [{"id": "x", "action": "bogus"}, {"id": "ok", "action": "answer",
                                    "keywords": ["a", " "], "value": 5}, "junk"]})
     ids = [r["id"] for r in c["routines"]]
-    assert ids == ["ok", "builtin:weather", "builtin:help", "builtin:google"]
+    assert ids == ["ok", "builtin:weather", "builtin:help", "builtin:google", "builtin:browser",
+                   "builtin:home", "builtin:downloads", "builtin:terminal", "builtin:calculator",
+                   "builtin:settings"]
     assert c["routines"][0]["keywords"] == ["a"]
     raw = {"routine_help": False}
     config._migrate_routine_flags(raw)
@@ -266,3 +268,20 @@ def test_google_builtin_can_be_disabled():
     launched = []
     assert routines.handle("google nach capybara", cfg, launcher=launched.append) is None
     assert not launched
+
+
+def test_simple_desktop_actions_do_not_need_hermes():
+    from pathlib import Path
+    cases = [
+        ("Öffne den Browser", ["xdg-open", "https://www.google.com/"]),
+        ("Öffne den Home-Ordner", ["xdg-open", str(Path.home())]),
+        ("Öffne Downloads", ["xdg-open", str(Path.home() / "Downloads")]),
+        ("Öffne Terminal", ["x-terminal-emulator"]),
+        ("Öffne Rechner", ["gnome-calculator"]),
+        ("Öffne Systemeinstellungen", ["gnome-control-center"]),
+    ]
+    for prompt, expected in cases:
+        launched = []
+        result = routines.handle(prompt, cfg(), launcher=launched.append)
+        assert launched == [expected], prompt
+        assert result.name == "custom" and result.label

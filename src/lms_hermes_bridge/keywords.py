@@ -14,9 +14,11 @@ def compile_keywords(keywords: tuple[str, ...]) -> re.Pattern | None:
         kw = kw.strip()
         if not kw.strip("*"):
             continue
-        prefix = kw.endswith("*")
-        words = kw.rstrip("*").split()
-        parts.append(_GAP.join(re.escape(w) for w in words) + ("" if prefix else r"(?!\w)"))
+        words = []
+        for word in kw.split():
+            prefix = word.endswith("*")
+            words.append(re.escape(word.rstrip("*")) + (r"\w*" if prefix else r"(?!\w)"))
+        parts.append(_GAP.join(words))
     return re.compile(r"(?<!\w)(?:" + "|".join(parts) + ")", re.I) if parts else None
 
 

@@ -5,8 +5,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+### Added
+- Built-in desktop routines open the browser, home folder, Downloads, terminal, calculator and GNOME system settings without Hermes. The fixed commands can be disabled and their keywords extended in the routines table.
+
 ### Fixed
 - Google search requests now open the default browser directly with the extracted query instead of relying on Hermes' disabled browser toolset.
+- Keyword patterns now allow `*` on any word in a multi-word phrase (for example `öffne* browser`).
 
 ## [0.3.0] - 2026-10-25
 
