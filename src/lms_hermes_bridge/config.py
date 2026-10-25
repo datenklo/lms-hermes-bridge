@@ -105,6 +105,10 @@ DEFAULTS = {
     "language": "auto",  # auto | en | de
     "hotkey": "<Control><Alt>space",
     "start_on_login": True,  # create a GNOME autostart entry for this app
+    "check_updates": True,
+    "update_check_interval_hours": 6,
+    "check_updates": True,
+    "update_check_interval_hours": 6,
     "local_only": False,  # never contact external providers
     "check_components": True,  # offer to install missing LM Studio / Hermes at start
     "autostart_backends": True,  # start local LM Studio server / Hermes gateway in the background when down

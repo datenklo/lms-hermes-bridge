@@ -99,6 +99,8 @@ Wayland forbids application-wide global shortcuts, so the app registers a GNOME 
   "language": "auto|en|de",
   "hotkey": "<Control><Alt>space",
   "start_on_login": true,
+  "check_updates": true,
+  "update_check_interval_hours": 6,
   "local_only": false,
   "routing": "auto|local|hermes|provider:<id>",
   "lmstudio": { "url": "...", "auto_load": true, "unload_others": true,
@@ -120,6 +122,8 @@ Wayland forbids application-wide global shortcuts, so the app registers a GNOME 
 Writes are atomic (temp file + `os.replace`). API keys are stored in plain text; the file is only readable by the owner.
 
 The General settings switch creates or removes `~/.config/autostart/lms-hermes-bridge.desktop` immediately on save. The installer applies the persisted `start_on_login` value.
+
+Automatic update checks use `updater.updates_available()` at startup and the configured interval. This only runs `git fetch` and `git rev-list`; when `origin/main` is ahead, app and tray menus refresh with an update label/icon. The destructive part (`git pull --ff-only` plus pipx reinstall) runs only after the user confirms.
 
 ## Adding things
 

@@ -6,6 +6,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 ## [Unreleased]
 
 ### Added
+- Configurable periodic GitHub update checks; menus switch to “Update now” and show a blue status dot when `origin/main` is ahead. Checks only fetch metadata; installation still requires confirmation.
+
 - App/tray menu action to update the clean official `main` checkout and reinstall the pipx app; local changes are refused and a restart is offered after success.
 - Overlay requests EWMH always-above state and reapplies it on show/reactivation.
 

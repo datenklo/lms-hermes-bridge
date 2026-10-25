@@ -66,3 +66,15 @@ def test_update_refuses_non_main_branch(tmp_path):
     with pytest.raises(updater.UpdateError, match="main branch"):
         updater.perform_update(repo=tmp_path, runner=feature_runner)
     assert not any(args[:2] == ["git", "fetch"] for args, _ in calls)
+
+
+def test_periodic_check_only_fetches_and_reports_remote_commits(tmp_path):
+    run, calls = fake_runner(tmp_path, behind="3")
+    assert updater.updates_available(repo=tmp_path, runner=run)
+    assert any(args[:2] == ["git", "fetch"] for args, _ in calls)
+    assert not any(args[:2] == ["git", "pull"] for args, _ in calls)
+
+
+def test_periodic_check_reports_current_checkout(tmp_path):
+    run, _calls = fake_runner(tmp_path, behind="0")
+    assert not updater.updates_available(repo=tmp_path, runner=run)

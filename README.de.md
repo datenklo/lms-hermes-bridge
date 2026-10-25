@@ -15,6 +15,7 @@ Ein per Tastenkombination aufrufbares Overlay für Ubuntu (GNOME), das den Deskt
 - **Einfache Desktop-Aktionen:** Eingebaute Routinen öffnen Browser, persönlichen Ordner, Downloads, Terminal, Rechner und GNOME-Systemeinstellungen ohne Hermes. Jede Zeile kann in der Routinen-Tabelle abgeschaltet oder um Stichwörter ergänzt werden; die Befehle sind fest vorgegeben und laufen ohne Shell.
 - **Trayicon** (stilisiertes Gehirn): Linksklick öffnet das Fragefenster, Rechtsklick zeigt ein Menü mit Einstellungen, Über (GitHub-Link, Lizenz) und Beenden. Nutzt das StatusNotifierItem-Protokoll, das die in Ubuntu enthaltene AppIndicator-Erweiterung unterstützt.
 - **Selbst-Update:** Über **Aktualisieren…** im App-/Tray-Menü wird der saubere `main`-Checkout per Fast-Forward aktualisiert und die pipx-App neu installiert. Lokale Änderungen werden nie überschrieben; vor dem Update wird gefragt, danach kann die App neu gestartet werden.
+- **Regelmäßige Update-Prüfung:** Standardmäßig aktiviert; prüft alle sechs Stunden den GitHub-Branch `main` (Intervall unter Einstellungen → Allgemein änderbar). Bei einem Update wechselt der Menüpunkt zu **Jetzt aktualisieren…** und erhält einen blauen Punkt. Die Prüfung lädt nur Git-Metadaten; die Installation braucht weiterhin eine Bestätigung.
 - **Immer im Vordergrund:** Das Overlay fordert GNOME's „above“-Status an und setzt ihn beim Anzeigen oder Reaktivieren erneut.
 - **Automatische Modellwahl für LM Studio.** Jede Anfrage wird eingeordnet (`fast`, `balanced`, `deep`, `code`, `agent`) und mit stufenspezifischen Parametern (Kontextlänge, Temperatur, maximale Tokens) an das passendste Modell geleitet.
 - **Desktop-Kontext:** Zwischenablage-Text, markierten Text, eine Bilddatei oder einen über das Desktop-Portal bestätigten Screenshot anhängen. Bildanfragen verwenden immer ein lokales VLM, auch wenn Textanfragen fest an Hermes oder einen externen Anbieter geleitet werden. Der Bilddatei-Knopf ist deaktiviert, solange kein bildfähiges Modell geladen ist; ein installiertes Vision-Modell kann direkt im Overlay geladen werden. Ein Fähigkeits-Popover zeigt Bild-, Thinking- und Werkzeugunterstützung. Bevorzugtes Vision-Modell und automatisches Nachladen stehen unter Einstellungen → LM Studio.
@@ -66,7 +67,7 @@ Rechtsklick auf das Overlay oder das Trayicon, dann **Einstellungen…**:
 
 | Reiter | Optionen |
 |--------|----------|
-| Allgemein | Sprache, Nur-lokal-Modus, Routing, globale Tastenkombination (mit Prüfung und Konfliktanzeige), Installationsprüfung beim Start, automatischer Start von LM Studio/Hermes |
+| Allgemein | Sprache, Nur-lokal-Modus, Routing, globale Tastenkombination (mit Prüfung und Konfliktanzeige), Login-Autostart, Installationsprüfung, automatischer Backend-Start, regelmäßige Update-Prüfung und Intervall |
 | LM Studio | API-URL, automatisches Laden, andere Modelle entladen, Modell-Überschreibung pro Stufe, bevorzugtes Vision-Modell und automatisches VLM-Laden |
 | Hermes | Aktivieren, Chat-Endpunkt-URL, API-Schlüssel, Modellname |
 | Routinen | Tabelle aller Routinen: Stichwörter, Aktion, Wert; Hauptschalter; Standardort für das Wetter |

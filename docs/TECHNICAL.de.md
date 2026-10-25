@@ -99,6 +99,8 @@ Wayland erlaubt keine anwendungsweiten globalen Shortcuts. Die App registriert d
   "language": "auto|en|de",
   "hotkey": "<Control><Alt>space",
   "start_on_login": true,
+  "check_updates": true,
+  "update_check_interval_hours": 6,
   "local_only": false,
   "routing": "auto|local|hermes|provider:<id>",
   "lmstudio": { "url": "...", "auto_load": true, "unload_others": true,
@@ -120,6 +122,8 @@ Wayland erlaubt keine anwendungsweiten globalen Shortcuts. Die App registriert d
 Geschrieben wird atomar (temporäre Datei + `os.replace`). API-Schlüssel liegen im Klartext; die Datei ist nur für den Besitzer lesbar.
 
 Der Schalter unter „Allgemein“ erstellt oder entfernt beim Speichern sofort `~/.config/autostart/lms-hermes-bridge.desktop`. Der Installer übernimmt den gespeicherten Wert `start_on_login`.
+
+Automatische Update-Prüfungen nutzen `updater.updates_available()` beim Start und im konfigurierten Intervall. Dabei laufen nur `git fetch` und `git rev-list`; wenn `origin/main` voraus ist, aktualisieren App- und Tray-Menü Beschriftung/Icon. Der schreibende Teil (`git pull --ff-only` plus pipx-Neuinstallation) läuft erst nach Bestätigung.
 
 ## Erweiterungen
 

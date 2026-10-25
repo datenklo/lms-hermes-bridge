@@ -76,6 +76,19 @@ class SettingsWindow(Gtk.Window):
         self.w_start_on_login = _row(g, t("start_on_login"), Gtk.Switch(halign=Gtk.Align.START))
         self.w_start_on_login.set_active(self.cfg["start_on_login"])
 
+        self.w_check_updates = _row(g, t("check_updates"), Gtk.Switch(halign=Gtk.Align.START))
+        self.w_check_updates.set_active(self.cfg["check_updates"])
+        self.w_update_interval = _row(g, t("update_interval"), Gtk.SpinButton.new_with_range(1, 168, 1))
+        self.w_update_interval.set_value(self.cfg["update_check_interval_hours"])
+
+        self.w_check_updates = _row(g, t("check_updates"), Gtk.Switch(halign=Gtk.Align.START))
+        self.w_check_updates.set_active(self.cfg["check_updates"])
+        self.w_update_interval = _row(
+            g, t("update_interval"),
+            Gtk.SpinButton.new_with_range(1, 168, 1),
+        )
+        self.w_update_interval.set_value(self.cfg["update_check_interval_hours"])
+
         self.w_local = _row(g, t("local_only"), Gtk.Switch(halign=Gtk.Align.START))
         self.w_local.set_active(self.cfg["local_only"])
 
@@ -317,6 +330,10 @@ class SettingsWindow(Gtk.Window):
         c = self.cfg
         c["language"] = self.langs[self.w_lang.get_selected()]
         c["start_on_login"] = self.w_start_on_login.get_active()
+        c["check_updates"] = self.w_check_updates.get_active()
+        c["update_check_interval_hours"] = self.w_update_interval.get_value_as_int()
+        c["check_updates"] = self.w_check_updates.get_active()
+        c["update_check_interval_hours"] = self.w_update_interval.get_value_as_int()
         c["local_only"] = self.w_local.get_active()
         c["check_components"] = self.w_check.get_active()
         c["autostart_backends"] = self.w_autostart.get_active()

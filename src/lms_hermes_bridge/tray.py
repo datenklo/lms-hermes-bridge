@@ -69,10 +69,11 @@ MENU_XML = """
 
 class Tray:
     def __init__(self, on_activate, items):
-        """items: list of (label_callable, callback) shown in the right-click menu."""
+        """items: (label, callback[, icon-name]) callables for the right-click menu."""
         self.on_activate = on_activate
         self.items = items
         self.conn = None
+        self.layout_revision = 1
         self.name = f"org.kde.StatusNotifierItem-{os.getpid()}-1"
         self.props = {
             "Category": GLib.Variant("s", "ApplicationStatus"),
@@ -110,8 +111,20 @@ class Tray:
 
     # -- dbusmenu ------------------------------------------------------
     def _item(self, idx: int):
-        label, _cb = self.items[idx - 1]
-        return GLib.Variant("(ia{sv}av)", (idx, {"label": GLib.Variant("s", label())}, []))
+        label, _cb, *icon_getter = self.items[idx - 1]
+        props = {"label": GLib.Variant("s", label())}
+        if icon_getter:
+            icon = icon_getter[0]()
+            if icon:
+                props["icon-name"] = GLib.Variant("s", icon)
+        return GLib.Variant("(ia{sv}av)", (idx, props, []))
+
+    def notify_layout_changed(self):
+        if self.conn is None:
+            return
+        self.layout_revision += 1
+        self.conn.emit_signal(None, MENU_PATH, "com.canonical.dbusmenu", "LayoutUpdated",
+                              GLib.Variant("(ui)", (self.layout_revision, 0)))
 
     def _on_menu_get(self, _c, _sender, _path, _iface, prop):
         return {
@@ -129,7 +142,15 @@ class Tray:
             invocation.return_value(GLib.Variant.new_tuple(GLib.Variant("u", 1), root))
         elif method == "GetGroupProperties":
             ids = params.unpack()[0] or list(range(1, len(self.items) + 1))
-            out = [(i, {"label": GLib.Variant("s", self.items[i - 1][0]())}) for i in ids if 1 <= i <= len(self.items)]
+            out = []
+            for i in ids:
+                if not 1 <= i <= len(self.items):
+                    continue
+                label, _callback, *icon_getter = self.items[i - 1]
+                props = {"label": GLib.Variant("s", label())}
+                if icon_getter and (icon := icon_getter[0]()):
+                    props["icon-name"] = GLib.Variant("s", icon)
+                out.append((i, props))
             invocation.return_value(GLib.Variant("(a(ia{sv}))", (out,)))
         elif method == "GetProperty":
             invocation.return_value(GLib.Variant("(v)", (GLib.Variant("s", ""),)))

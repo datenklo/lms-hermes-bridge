@@ -128,12 +128,9 @@ class BridgeWindow(Gtk.ApplicationWindow):
         click.connect("pressed", self._on_right_click)
         box.add_controller(click)
 
-        menu = Gio.Menu()
-        menu.append(t("settings"), "app.settings")
-        menu.append(t("update"), "app.update")
-        menu.append(t("about"), "app.about")
-        menu.append(t("quit"), "app.quit")
-        self.popover = Gtk.PopoverMenu.new_from_model(menu)
+        self.context_menu = Gio.Menu()
+        self._refresh_context_menu()
+        self.popover = Gtk.PopoverMenu.new_from_model(self.context_menu)
         self.popover.set_parent(box)
         self.popover.set_has_arrow(False)
         self.entry.set_placeholder_text(t("placeholder"))
@@ -142,6 +139,13 @@ class BridgeWindow(Gtk.ApplicationWindow):
         self.connect("notify::is-active", self._keep_above)
         self._update_context_status()
         threading.Thread(target=self._query_model_capabilities, daemon=True).start()
+
+    def _refresh_context_menu(self):
+        self.context_menu.remove_all()
+        self.context_menu.append(t("settings"), "app.settings")
+        self.context_menu.append(self.get_application().update_menu_text(), "app.update")
+        self.context_menu.append(t("about"), "app.about")
+        self.context_menu.append(t("quit"), "app.quit")
 
     def _icon_button(self, icon: str, tooltip: str, callback) -> Gtk.Button:
         button = Gtk.Button(icon_name=icon, css_classes=["flat"], tooltip_text=t(tooltip))
@@ -457,6 +461,9 @@ class BridgeApp(Gtk.Application):
         super().__init__(application_id=APP_ID, flags=Gio.ApplicationFlags.HANDLES_COMMAND_LINE)
         self.cfg = cfgmod.load()
         self.win: BridgeWindow | None = None
+        self.update_available = False
+        self._update_timer = 0
+        self._update_check_running = False
         self.add_main_option("background", 0, GLib.OptionFlags.NONE, GLib.OptionArg.NONE, "Start hidden", None)
 
     def do_startup(self):
@@ -475,12 +482,59 @@ class BridgeApp(Gtk.Application):
         hotkey.refresh_command()
         try:
             self.tray = Tray(self._tray_toggle, [(lambda: t("settings"), self.open_settings),
-                                           (lambda: t("update"), self.open_update),
+                                           (self.update_menu_text, self.open_update,
+                                            lambda: "update-available" if self.update_available else None),
                                            (lambda: t("about"), self.open_about),
                                            (lambda: t("quit"), self.quit)])
             self.tray.start()
         except Exception:
             self.tray = None  # no D-Bus session: run without tray icon
+        self._configure_update_monitor()
+
+    def update_menu_text(self):
+        return t("update_available") if self.update_available else t("update")
+
+    def _set_update_available(self, available: bool):
+        self.update_available = available
+        if self.win:
+            self.win._refresh_context_menu()
+        if self.tray:
+            self.tray.notify_layout_changed()
+        return False
+
+    def _configure_update_monitor(self):
+        if self._update_timer:
+            GLib.source_remove(self._update_timer)
+            self._update_timer = 0
+        if not self.cfg.get("check_updates", True):
+            self._set_update_available(False)
+            return
+        hours = max(1, min(168, int(self.cfg.get("update_check_interval_hours", 6))))
+        self._update_timer = GLib.timeout_add_seconds(hours * 3600, self._periodic_update_check)
+        self._begin_update_check()
+
+    def _periodic_update_check(self):
+        self._begin_update_check()
+        return True
+
+    def _begin_update_check(self):
+        if self._update_check_running or not self.cfg.get("check_updates", True):
+            return
+        self._update_check_running = True
+
+        def check():
+            try:
+                available = updater.updates_available()
+                GLib.idle_add(self._set_update_available, available)
+            except Exception as e:
+                print(f"Update check failed: {e}", file=sys.stderr)
+            finally:
+                GLib.idle_add(self._finish_update_check)
+        threading.Thread(target=check, daemon=True).start()
+
+    def _finish_update_check(self):
+        self._update_check_running = False
+        return False
 
     def _tray_toggle(self):
         self._ensure_window()
@@ -591,6 +645,7 @@ class BridgeApp(Gtk.Application):
 
     def _reload(self):
         set_language(self.cfg["language"])
+        self._configure_update_monitor()
         old = self.win
         self.win = BridgeWindow(self, self.cfg)
         old.destroy()

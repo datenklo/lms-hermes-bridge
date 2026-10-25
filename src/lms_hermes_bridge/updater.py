@@ -53,6 +53,19 @@ def discover_checkout() -> Path:
     raise UpdateError("The LMS Hermes Bridge Git checkout could not be found.")
 
 
+def updates_available(repo: Path | None = None, runner=subprocess.run) -> bool:
+    """Fetch remote refs only, then compare the current commit with origin/main."""
+    root = Path(repo or discover_checkout()).resolve()
+    if not _is_expected_checkout(root, runner):
+        raise UpdateError("The selected folder is not the official LMS Hermes Bridge checkout.")
+    branch = _git(["branch", "--show-current"], root, runner)
+    if branch != "main":
+        raise UpdateError(f"Update checks are only supported from the main branch (current: {branch}).")
+    _git(["fetch", "--quiet", "--prune", "origin"], root, runner)
+    behind = int(_git(["rev-list", "--count", "HEAD..origin/main"], root, runner) or "0")
+    return behind > 0
+
+
 def perform_update(on_line=lambda _line: None, repo: Path | None = None, runner=subprocess.run) -> str:
     """Fast-forward the source checkout and reinstall the pipx app. Returns updated/current."""
     root = Path(repo or discover_checkout()).resolve()
