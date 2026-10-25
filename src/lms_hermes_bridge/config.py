@@ -4,6 +4,8 @@ import json
 import os
 from pathlib import Path
 
+from .system_prompts import DEFAULT_SYSTEM_PROMPTS
+
 CONFIG_DIR = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config")) / "lms-hermes-bridge"
 CONFIG_FILE = CONFIG_DIR / "config.json"
 
@@ -107,8 +109,7 @@ DEFAULTS = {
     "start_on_login": True,  # create a GNOME autostart entry for this app
     "check_updates": True,
     "update_check_interval_hours": 6,
-    "check_updates": True,
-    "update_check_interval_hours": 6,
+    "system_prompts": copy.deepcopy(DEFAULT_SYSTEM_PROMPTS),
     "local_only": False,  # never contact external providers
     "check_components": True,  # offer to install missing LM Studio / Hermes at start
     "autostart_backends": True,  # start local LM Studio server / Hermes gateway in the background when down

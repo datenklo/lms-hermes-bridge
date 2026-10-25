@@ -34,6 +34,7 @@ flowchart LR
 | `desktop_context.py` | Clipboard/image payload validation and XDG Screenshot portal capture, with a 16 MB image limit |
 | `providers.py` | Streaming clients: OpenAI-compatible (`/chat/completions`) and Anthropic (`/v1/messages`), SSE parsing, `ChatError` |
 | `config.py` | JSON config in `~/.config/lms-hermes-bridge/config.json` (mode `0600`), defaults, deep merge, provider presets |
+| `system_prompts.py` | German and English default system instructions; chooses the configured language prompt with default fallback |
 | `settings_dialog.py` | Tabbed settings window (General, LM Studio, Hermes, External models) |
 | `tray.py` | StatusNotifierItem + `com.canonical.dbusmenu` over `Gio.DBusConnection` |
 | `hotkey.py` | Registers a GNOME custom keybinding through `gsettings` (`Gio.Settings`) |
@@ -99,6 +100,7 @@ Wayland forbids application-wide global shortcuts, so the app registers a GNOME 
   "language": "auto|en|de",
   "hotkey": "<Control><Alt>space",
   "start_on_login": true,
+  "system_prompts": { "de": "...", "en": "..." },
   "check_updates": true,
   "update_check_interval_hours": 6,
   "local_only": false,

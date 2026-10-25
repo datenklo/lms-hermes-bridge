@@ -19,6 +19,7 @@ A hotkey-driven launcher overlay for Ubuntu (GNOME) that bridges your desktop, [
 - **Always on top:** the prompt overlay requests GNOME's above state and reapplies it when shown or reactivated.
 - **Automatic model selection for LM Studio.** Every prompt is classified (`fast`, `balanced`, `deep`, `code`, `agent`) and routed to the best fitting model with tier-specific parameters (context length, temperature, max tokens).
 - **Desktop context:** add clipboard text, selected text, an image file or a portal-approved screenshot. Image requests always use a local VLM, even if text routing is forced to Hermes or an external provider. The image-file button is disabled unless a loaded model supports vision; an installed vision model can be loaded from the overlay. A capability popover shows image, thinking and tool-use support. Configure a preferred vision model and automatic image-model loading under Settings → LM Studio.
+- **Editable system prompt:** the settings include separate German and English prompts. The supplied default asks for fact-grounded, concise answers, transparent sources and clear uncertainty; edit either language or reset it independently.
 - **Fast by design.** An already loaded model that fits the request is preferred over loading a new one; models that do not fit your RAM are skipped; models are loaded through the `lms` CLI only when needed.
 - **Hermes integration** for action-oriented tasks ("open…", "install…", "create a file…") via Hermes' OpenAI-compatible API server.
 - **External models** (Claude, ChatGPT, Copilot/GitHub Models, custom OpenAI-compatible endpoints), usable as forced route or as fallback when LM Studio is down.
@@ -68,6 +69,7 @@ Right-click the overlay and choose **Settings…**:
 | Tab | Options |
 |-----|---------|
 | General | Language, local-only mode, routing, global hotkey (validated, conflicts shown), login autostart, install check, automatic backend start, periodic update check and interval |
+| System prompt | Edit or reset the German and English assistant instructions independently |
 | LM Studio | API URL, auto-load, unload others, per-tier model overrides, preferred vision model and automatic VLM loading |
 | Hermes | Enable, chat endpoint URL, API key, model name |
 | Routines | Table of all routines: keywords, action, value; master switch; default weather location |

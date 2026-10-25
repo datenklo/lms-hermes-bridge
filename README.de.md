@@ -19,6 +19,7 @@ Ein per Tastenkombination aufrufbares Overlay für Ubuntu (GNOME), das den Deskt
 - **Immer im Vordergrund:** Das Overlay fordert GNOME's „above“-Status an und setzt ihn beim Anzeigen oder Reaktivieren erneut.
 - **Automatische Modellwahl für LM Studio.** Jede Anfrage wird eingeordnet (`fast`, `balanced`, `deep`, `code`, `agent`) und mit stufenspezifischen Parametern (Kontextlänge, Temperatur, maximale Tokens) an das passendste Modell geleitet.
 - **Desktop-Kontext:** Zwischenablage-Text, markierten Text, eine Bilddatei oder einen über das Desktop-Portal bestätigten Screenshot anhängen. Bildanfragen verwenden immer ein lokales VLM, auch wenn Textanfragen fest an Hermes oder einen externen Anbieter geleitet werden. Der Bilddatei-Knopf ist deaktiviert, solange kein bildfähiges Modell geladen ist; ein installiertes Vision-Modell kann direkt im Overlay geladen werden. Ein Fähigkeits-Popover zeigt Bild-, Thinking- und Werkzeugunterstützung. Bevorzugtes Vision-Modell und automatisches Nachladen stehen unter Einstellungen → LM Studio.
+- **Editierbarer Systemprompt:** Die Einstellungen enthalten getrennte Prompts für Deutsch und Englisch. Der Standard verlangt faktenbasierte, knappe Antworten, transparente Quellen und einen offenen Umgang mit Unsicherheit. Beide Sprachen lassen sich unabhängig bearbeiten oder zurücksetzen.
 - **Auf Geschwindigkeit ausgelegt.** Ein bereits geladenes, passendes Modell wird bevorzugt; Modelle, die nicht in den RAM passen, werden übersprungen; geladen wird nur bei Bedarf über die `lms`-CLI.
 - **Hermes-Anbindung** für aktionsorientierte Aufgaben („öffne…“, „installiere…“, „erstelle eine Datei…“) über den OpenAI-kompatiblen API-Server von Hermes.
 - **Externe Modelle** (Claude, ChatGPT, Copilot/GitHub Models, eigene OpenAI-kompatible Endpunkte) als feste Route oder als Fallback, wenn LM Studio nicht läuft.
@@ -68,6 +69,7 @@ Rechtsklick auf das Overlay oder das Trayicon, dann **Einstellungen…**:
 | Reiter | Optionen |
 |--------|----------|
 | Allgemein | Sprache, Nur-lokal-Modus, Routing, globale Tastenkombination (mit Prüfung und Konfliktanzeige), Login-Autostart, Installationsprüfung, automatischer Backend-Start, regelmäßige Update-Prüfung und Intervall |
+| Systemprompt | Deutsche und englische Assistentenanweisungen getrennt bearbeiten oder zurücksetzen |
 | LM Studio | API-URL, automatisches Laden, andere Modelle entladen, Modell-Überschreibung pro Stufe, bevorzugtes Vision-Modell und automatisches VLM-Laden |
 | Hermes | Aktivieren, Chat-Endpunkt-URL, API-Schlüssel, Modellname |
 | Routinen | Tabelle aller Routinen: Stichwörter, Aktion, Wert; Hauptschalter; Standardort für das Wetter |

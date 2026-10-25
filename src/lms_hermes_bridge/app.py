@@ -10,10 +10,11 @@ from gi.repository import Gdk, Gio, GLib, Gtk  # noqa: E402
 from . import APP_ID, __version__, config as cfgmod, hotkey, installer, lmstudio, providers, router, routines, services  # noqa: E402
 from . import desktop_context  # noqa: E402
 from . import updater  # noqa: E402
-from .i18n import set_language, t  # noqa: E402
+from .i18n import current, set_language, t  # noqa: E402
 from .install_window import InstallWindow  # noqa: E402
 from .placement import move_to_top  # noqa: E402
 from .settings_dialog import SettingsWindow  # noqa: E402
+from .system_prompts import for_language  # noqa: E402
 from .tray import ICON_DIR, Tray  # noqa: E402
 from .update_window import UpdateWindow  # noqa: E402
 
@@ -41,9 +42,6 @@ window.settings frame { border-radius: 12px; border: 1px solid alpha(@borders, 0
 window.settings textview { border-radius: 8px; padding: 8px; font-size: 13px; }
 window.settings scrolledwindow { border-radius: 10px; border: 1px solid alpha(@borders, 0.5); }
 """
-
-SYSTEM_PROMPT = "You are a concise, helpful desktop assistant on Ubuntu Linux."
-
 
 class BridgeWindow(Gtk.ApplicationWindow):
     def __init__(self, app, cfg):
@@ -435,7 +433,11 @@ class BridgeWindow(Gtk.ApplicationWindow):
                 user_content = [{"type": "text", "text": full_prompt}]
                 user_content.extend({"type": "image_url", "image_url": {
                     "url": f"data:{image['mime']};base64,{image['data']}"}} for image in images)
-            messages = [{"role": "system", "content": SYSTEM_PROMPT}, {"role": "user", "content": user_content}]
+            system_prompt = for_language(cfg, current())
+            messages = []
+            if system_prompt.strip():
+                messages.append({"role": "system", "content": system_prompt})
+            messages.append({"role": "user", "content": user_content})
             for chunk in self._stream(route, messages):
                 if cancel.is_set():
                     return

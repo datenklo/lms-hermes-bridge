@@ -49,6 +49,7 @@ class SettingsWindow(Gtk.Window):
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         nb = Gtk.Notebook(vexpand=True)
         nb.append_page(self._general(), Gtk.Label(label=t("tab_general")))
+        nb.append_page(self._system_prompt(), Gtk.Label(label=t("tab_system_prompt")))
         nb.append_page(self._lmstudio(), Gtk.Label(label=t("tab_lmstudio")))
         nb.append_page(self._hermes(), Gtk.Label(label=t("tab_hermes")))
         nb.append_page(self._routines(), Gtk.Label(label=t("tab_routines")))
@@ -81,14 +82,6 @@ class SettingsWindow(Gtk.Window):
         self.w_update_interval = _row(g, t("update_interval"), Gtk.SpinButton.new_with_range(1, 168, 1))
         self.w_update_interval.set_value(self.cfg["update_check_interval_hours"])
 
-        self.w_check_updates = _row(g, t("check_updates"), Gtk.Switch(halign=Gtk.Align.START))
-        self.w_check_updates.set_active(self.cfg["check_updates"])
-        self.w_update_interval = _row(
-            g, t("update_interval"),
-            Gtk.SpinButton.new_with_range(1, 168, 1),
-        )
-        self.w_update_interval.set_value(self.cfg["update_check_interval_hours"])
-
         self.w_local = _row(g, t("local_only"), Gtk.Switch(halign=Gtk.Align.START))
         self.w_local.set_active(self.cfg["local_only"])
 
@@ -112,6 +105,23 @@ class SettingsWindow(Gtk.Window):
         _row(g, t("hotkey"), hk)
         _row(g, "", self.w_hk_status)
         return g
+
+    def _system_prompt(self):
+        self.prompt_lang = current() if current() in STRINGS else "en"
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10, margin_top=14, margin_bottom=14,
+                      margin_start=18, margin_end=18)
+        box.append(Gtk.Label(label=t("system_prompt_hint", lang=STRINGS[self.prompt_lang]["language_name"]),
+                             xalign=0, wrap=True, css_classes=["dim-label"]))
+        self.system_prompt_buffer = Gtk.TextBuffer()
+        self.system_prompt_buffer.set_text(self.cfg["system_prompts"].get(self.prompt_lang, ""))
+        editor = Gtk.TextView(buffer=self.system_prompt_buffer, monospace=True, wrap_mode=Gtk.WrapMode.WORD_CHAR,
+                              top_margin=10, bottom_margin=10, left_margin=10, right_margin=10)
+        box.append(Gtk.ScrolledWindow(child=editor, vexpand=True))
+        reset = Gtk.Button(label=t("system_prompt_reset"), halign=Gtk.Align.START)
+        reset.connect("clicked", lambda *_: self.system_prompt_buffer.set_text(
+            cfgmod.DEFAULT_SYSTEM_PROMPTS[self.prompt_lang]))
+        box.append(reset)
+        return box
 
     # -- routines table ---------------------------------------------------
     CUSTOM_ACTIONS = ("answer", "command", "url", "hermes", "llm")
@@ -332,8 +342,8 @@ class SettingsWindow(Gtk.Window):
         c["start_on_login"] = self.w_start_on_login.get_active()
         c["check_updates"] = self.w_check_updates.get_active()
         c["update_check_interval_hours"] = self.w_update_interval.get_value_as_int()
-        c["check_updates"] = self.w_check_updates.get_active()
-        c["update_check_interval_hours"] = self.w_update_interval.get_value_as_int()
+        c["system_prompts"][self.prompt_lang] = self.system_prompt_buffer.get_text(
+            self.system_prompt_buffer.get_start_iter(), self.system_prompt_buffer.get_end_iter(), False)
         c["local_only"] = self.w_local.get_active()
         c["check_components"] = self.w_check.get_active()
         c["autostart_backends"] = self.w_autostart.get_active()
