@@ -7,6 +7,8 @@ A hotkey-driven launcher overlay for Ubuntu (GNOME) that bridges your desktop, [
 ## Features
 
 - **Global hotkey** (default `Ctrl+Alt+Space`) toggles a floating, search-bar style window. `Esc` or clicking elsewhere dismisses it.
+- **Top placement:** the prompt window appears centred at the top edge of the screen. On Wayland the app therefore runs through XWayland (`GDK_BACKEND=x11`), because Wayland does not let apps position their own windows.
+- **Background start:** if the local LM Studio server (`lms server start`) or the Hermes gateway (`hermes gateway start`) is not running, the app starts it at launch and again on demand when a request needs it. Only local, installed services are started; switchable in the settings.
 - **Tray icon** (stylized brain): left click opens the prompt window, right click shows a menu with Settings, About (GitHub link, license) and Quit. Uses the StatusNotifierItem protocol, which Ubuntu's built-in AppIndicator extension supports.
 - **Automatic model selection for LM Studio.** Every prompt is classified (`fast`, `balanced`, `deep`, `code`, `agent`) and routed to the best fitting model with tier-specific parameters (context length, temperature, max tokens).
 - **Fast by design.** An already loaded model that fits the request is preferred over loading a new one; models that do not fit your RAM are skipped; models are loaded through the `lms` CLI only when needed.

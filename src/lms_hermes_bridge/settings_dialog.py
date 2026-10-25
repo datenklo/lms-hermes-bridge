@@ -75,6 +75,9 @@ class SettingsWindow(Gtk.Window):
         self.w_check = _row(g, t("check_components"), Gtk.Switch(halign=Gtk.Align.START))
         self.w_check.set_active(self.cfg["check_components"])
 
+        self.w_autostart = _row(g, t("autostart_backends"), Gtk.Switch(halign=Gtk.Align.START))
+        self.w_autostart.set_active(self.cfg["autostart_backends"])
+
         self.w_routing = _row(g, t("routing"), Gtk.DropDown())
         self._fill_routing()
 
@@ -194,6 +197,7 @@ class SettingsWindow(Gtk.Window):
         c["language"] = self.langs[self.w_lang.get_selected()]
         c["local_only"] = self.w_local.get_active()
         c["check_components"] = self.w_check.get_active()
+        c["autostart_backends"] = self.w_autostart.get_active()
         c["hotkey"] = self.w_hotkey.get_text().strip()
         l = c["lmstudio"]
         l["url"] = self.w_lms_url.get_text().strip()

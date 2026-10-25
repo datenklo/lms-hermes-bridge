@@ -6,9 +6,10 @@ import gi
 gi.require_version("Gtk", "4.0")
 from gi.repository import Gdk, Gio, GLib, Gtk  # noqa: E402
 
-from . import APP_ID, __version__, config as cfgmod, installer, lmstudio, providers, router  # noqa: E402
+from . import APP_ID, __version__, config as cfgmod, installer, lmstudio, providers, router, services  # noqa: E402
 from .i18n import set_language, t  # noqa: E402
 from .install_window import InstallWindow  # noqa: E402
+from .placement import move_to_top  # noqa: E402
 from .settings_dialog import SettingsWindow  # noqa: E402
 from .tray import ICON_DIR, Tray  # noqa: E402
 
@@ -120,6 +121,11 @@ class BridgeWindow(Gtk.ApplicationWindow):
         self.present()
         self.entry.grab_focus()
         self.entry.select_region(0, -1)
+        GLib.timeout_add(40, self._place)  # the surface must be mapped before it can be moved
+
+    def _place(self):
+        move_to_top(self)
+        return False
 
     # -- query flow -----------------------------------------------------
     def _submit(self, *_):
@@ -145,10 +151,24 @@ class BridgeWindow(Gtk.ApplicationWindow):
     def _ui(self, fn, *a):
         GLib.idle_add(fn, *a)
 
+    def _resolve_route(self, prompt: str):
+        cfg = self.cfg
+        url = cfg["lmstudio"]["url"]
+        models = lmstudio.list_models(url)
+        route = router.decide(prompt, cfg, models, lmstudio.mem_total_bytes())
+        if models is None and (route is None or route.reason == "LM Studio unavailable"):
+            self._ui(self._status, t("starting", name="LM Studio"))
+            if services.ensure(cfg, "lmstudio"):
+                models = lmstudio.list_models(url)
+                route = router.decide(prompt, cfg, models, lmstudio.mem_total_bytes())
+        if route and route.backend == "hermes" and not services.hermes_up(cfg):
+            self._ui(self._status, t("starting", name="Hermes"))
+            services.ensure(cfg, "hermes")
+        return route
+
     def _worker(self, prompt: str, cancel: threading.Event):
         cfg = self.cfg
-        models = lmstudio.list_models(cfg["lmstudio"]["url"])
-        route = router.decide(prompt, cfg, models, lmstudio.mem_total_bytes())
+        route = self._resolve_route(prompt)
         if route is None:
             key = "err_local_only" if cfg["local_only"] else "err_no_target"
             self._ui(self._status, t(key))
@@ -229,6 +249,15 @@ class BridgeApp(Gtk.Application):
 
     def _scan_components(self):
         GLib.idle_add(self._offer, installer.missing(self.cfg))
+        self._start_services()
+
+    def _start_services(self):
+        """Bring local LM Studio / Hermes up in the background so the first request is fast."""
+        if not self.cfg["autostart_backends"]:
+            return
+        names = ["lmstudio"] + (["hermes"] if self.cfg["hermes"]["enabled"] else [])
+        for name in names:
+            threading.Thread(target=services.ensure, args=(self.cfg, name), daemon=True).start()
 
     def _offer(self, queue: list):
         if not queue:

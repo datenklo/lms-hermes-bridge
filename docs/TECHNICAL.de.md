@@ -33,6 +33,8 @@ flowchart LR
 | `settings_dialog.py` | Einstellungsfenster mit Reitern (Allgemein, LM Studio, Hermes, Externe Modelle) |
 | `tray.py` | StatusNotifierItem + `com.canonical.dbusmenu` über `Gio.DBusConnection` |
 | `hotkey.py` | Registriert einen GNOME-Shortcut über `gsettings` (`Gio.Settings`) |
+| `services.py` | Startet den lokalen LM-Studio-Server (`lms server start`, Ausweichen auf `lms daemon up`) und das Hermes-Gateway (`hermes gateway start`), wenn deren Health-Check fehlschlägt, und wartet dann auf die Antwort. Überspringt entfernte URLs, nicht installierte Programme und die abgeschaltete Einstellung |
+| `placement.py` | Verschiebt das Overlay per `XMoveWindow` (ctypes) an den oberen Rand in der Mitte; braucht das X11-Backend, das `__init__.py` in Wayland-Sitzungen wählt |
 | `installer.py` | Erkennt ein fehlendes lokales LM Studio / Hermes (entfernte Endpunkte werden ignoriert) und führt das offizielle Installationsskript (`curl -fsSL <url> \| bash`) in einem Thread aus, mit Live-Ausgabe; nach LM Studio folgt `lms server start` |
 | `install_window.py` | Modales Fortschrittsfenster mit Live-Log der Installation |
 | `i18n.py` | `STRINGS`-Wörterbücher pro Sprache, `t(key)`, Spracherkennung |

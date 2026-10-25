@@ -7,6 +7,8 @@ Ein per Tastenkombination aufrufbares Overlay für Ubuntu (GNOME), das den Deskt
 ## Funktionen
 
 - **Globale Tastenkombination** (Standard `Strg+Alt+Leertaste`) blendet ein schwebendes Suchfenster ein und aus. `Esc` oder ein Klick daneben schließt es.
+- **Platzierung oben:** Das Fragefenster erscheint mittig am oberen Bildschirmrand. Unter Wayland läuft die App dafür über XWayland (`GDK_BACKEND=x11`), da Wayland Apps nicht erlaubt, ihre Fenster selbst zu positionieren.
+- **Start im Hintergrund:** Läuft der lokale LM-Studio-Server (`lms server start`) oder das Hermes-Gateway (`hermes gateway start`) nicht, startet die App beides beim Start und bei Bedarf erneut, wenn eine Anfrage es braucht. Es werden nur lokale, installierte Dienste gestartet; in den Einstellungen abschaltbar.
 - **Trayicon** (stilisiertes Gehirn): Linksklick öffnet das Fragefenster, Rechtsklick zeigt ein Menü mit Einstellungen, Über (GitHub-Link, Lizenz) und Beenden. Nutzt das StatusNotifierItem-Protokoll, das die in Ubuntu enthaltene AppIndicator-Erweiterung unterstützt.
 - **Automatische Modellwahl für LM Studio.** Jede Anfrage wird eingeordnet (`fast`, `balanced`, `deep`, `code`, `agent`) und mit stufenspezifischen Parametern (Kontextlänge, Temperatur, maximale Tokens) an das passendste Modell geleitet.
 - **Auf Geschwindigkeit ausgelegt.** Ein bereits geladenes, passendes Modell wird bevorzugt; Modelle, die nicht in den RAM passen, werden übersprungen; geladen wird nur bei Bedarf über die `lms`-CLI.
