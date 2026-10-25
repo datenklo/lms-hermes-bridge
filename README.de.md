@@ -74,7 +74,7 @@ Die Einstellungen liegen in `~/.config/lms-hermes-bridge/config.json` (Dateirech
 PYTHONPATH=src python3 -m pytest
 ```
 
-Die Routing-Logik (`router.py`) ist rein funktional und per Unit-Tests abgedeckt; die Oberfläche liegt in `app.py` und `settings_dialog.py`. Details siehe [docs/TECHNICAL.md](docs/TECHNICAL.md) (englisch).
+Die Routing-Logik (`router.py`) ist rein funktional und per Unit-Tests abgedeckt; die Oberfläche liegt in `app.py` und `settings_dialog.py`. Details siehe [docs/TECHNICAL.de.md](docs/TECHNICAL.de.md).
 
 ## Roadmap
 

@@ -74,7 +74,7 @@ Settings are stored in `~/.config/lms-hermes-bridge/config.json` (file mode `060
 PYTHONPATH=src python3 -m pytest
 ```
 
-The routing logic (`router.py`) is pure and unit-tested; UI code lives in `app.py` and `settings_dialog.py`. See [docs/TECHNICAL.md](docs/TECHNICAL.md) for the architecture and [CHANGELOG.md](CHANGELOG.md) for release notes.
+The routing logic (`router.py`) is pure and unit-tested; UI code lives in `app.py` and `settings_dialog.py`. See [docs/TECHNICAL.md](docs/TECHNICAL.md) (also in [German](docs/TECHNICAL.de.md)) for the architecture and [CHANGELOG.md](CHANGELOG.md) for release notes.
 
 ## Roadmap
 

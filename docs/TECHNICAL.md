@@ -1,5 +1,7 @@
 # Technical documentation
 
+🇬🇧 English | 🇩🇪 [Deutsch](TECHNICAL.de.md)
+
 ## Overview
 
 Single-process Python application (GTK 4 via PyGObject, standard library only). A `Gtk.Application` with `HANDLES_COMMAND_LINE` keeps one primary instance alive (`hold()`); every further launch (the hotkey runs the same command) is forwarded to the primary instance, which toggles the overlay.
