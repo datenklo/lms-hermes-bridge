@@ -8,7 +8,7 @@ STRINGS = {
         "settings": "Settings…",
         "about": "About…",
         "tab_keywords": "Hermes keywords",
-        "keywords_help": "Requests containing one of these words or phrases are sent to Hermes. One entry per line; a trailing * also matches longer word forms (install* matches installing).",
+        "keywords_help": "Requests containing one of these words or phrases ({lang}) are sent to Hermes. One entry per line; a trailing * also matches longer word forms (install* matches installing). Other languages keep their own lists.",
         "keywords_reset": "Reset to defaults",
         "check_components": "Offer to install missing LM Studio / Hermes at start",
         "setup_title": "{name} is not installed",
@@ -76,7 +76,7 @@ STRINGS = {
         "settings": "Einstellungen…",
         "about": "Über…",
         "tab_keywords": "Hermes-Stichwörter",
-        "keywords_help": "Anfragen, die eines dieser Wörter oder Wortgruppen enthalten, gehen an Hermes. Ein Eintrag pro Zeile; ein * am Ende erfasst auch längere Wortformen (installier* trifft installieren).",
+        "keywords_help": "Anfragen, die eines dieser Wörter oder Wortgruppen ({lang}) enthalten, gehen an Hermes. Ein Eintrag pro Zeile; ein * am Ende erfasst auch längere Wortformen (installier* trifft installieren). Andere Sprachen behalten ihre eigene Liste.",
         "keywords_reset": "Auf Standard zurücksetzen",
         "check_components": "Fehlendes LM Studio / Hermes beim Start zur Installation anbieten",
         "setup_title": "{name} ist nicht installiert",
@@ -151,6 +151,10 @@ def detect() -> str:
 def set_language(setting: str) -> None:
     global _lang
     _lang = detect() if setting == "auto" else (setting if setting in STRINGS else "en")
+
+
+def current() -> str:
+    return _lang
 
 
 def t(key: str, **kw) -> str:

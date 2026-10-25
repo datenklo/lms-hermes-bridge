@@ -81,3 +81,22 @@ def test_custom_and_empty_keyword_lists():
     assert router.classify("open firefox", [])[0] != "agent"
     assert router.decide("fnord now", cfg(agent_keywords=["fnord"], hermes={**DEFAULTS["hermes"], "enabled": True}),
                          MODELS, 32 * GB).backend == "hermes"
+
+
+def test_keywords_per_language_are_all_matched():
+    kws = {"en": ["fnord"], "de": ["quark*"]}
+    assert router.classify("fnord please", kws)[0] == "agent"
+    assert router.classify("quarkig", kws)[0] == "agent"
+    assert router.classify("hello", {"en": [], "de": []})[0] != "agent"
+
+
+def test_default_keywords_are_split_by_language():
+    from lms_hermes_bridge.config import DEFAULT_AGENT_KEYWORDS as D
+    assert set(D) == {"en", "de"} and "open" in D["en"] and "öffne*" in D["de"]
+    assert "open" not in D["de"] and "öffne*" not in D["en"]
+
+
+def test_legacy_flat_keyword_list_is_migrated():
+    from lms_hermes_bridge import config
+    out = config._migrate({"agent_keywords": ["open", "öffne*", "mycustom"]})["agent_keywords"]
+    assert out == {"en": ["open", "mycustom"], "de": ["öffne*"]}

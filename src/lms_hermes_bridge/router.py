@@ -60,11 +60,19 @@ class Route:
     needs_load: bool = False
 
 
-def classify(prompt: str, agent_keywords: list[str] | None = None) -> tuple[str, str]:
+def _flatten(keywords) -> tuple[str, ...]:
+    """Accepts the per-language dict (all languages are matched), a flat list, or None for defaults."""
+    if keywords is None:
+        keywords = DEFAULT_AGENT_KEYWORDS
+    if isinstance(keywords, dict):
+        return tuple(k for words in keywords.values() for k in words)
+    return tuple(keywords)
+
+
+def classify(prompt: str, agent_keywords: dict | list[str] | None = None) -> tuple[str, str]:
     """Returns (tier, reason). Fast heuristics so routing itself costs nothing."""
     words = len(prompt.split())
-    kws = DEFAULT_AGENT_KEYWORDS if agent_keywords is None else agent_keywords
-    agent_re = _agent_re(tuple(kws))
+    agent_re = _agent_re(_flatten(agent_keywords))
     if agent_re and agent_re.search(prompt):
         return "agent", "action request"
     if CODE_RE.search(prompt) or "```" in prompt:

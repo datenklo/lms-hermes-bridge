@@ -4,19 +4,19 @@ gi.require_version("Gtk", "4.0")
 from gi.repository import Gtk  # noqa: E402
 
 from . import config as cfgmod, hotkey  # noqa: E402
-from .i18n import STRINGS, t  # noqa: E402
+from .i18n import STRINGS, current, t  # noqa: E402
 
 KINDS = ["openai", "anthropic"]
 
 
 def _grid() -> Gtk.Grid:
-    g = Gtk.Grid(row_spacing=8, column_spacing=12, margin_top=12, margin_bottom=12, margin_start=12, margin_end=12)
+    g = Gtk.Grid(row_spacing=14, column_spacing=18, margin_top=18, margin_bottom=18, margin_start=20, margin_end=20)
     g.row = 0
     return g
 
 
 def _row(grid: Gtk.Grid, label: str, widget: Gtk.Widget) -> Gtk.Widget:
-    lab = Gtk.Label(label=label, xalign=0)
+    lab = Gtk.Label(label=label, xalign=0, css_classes=["dim-label"])
     widget.set_hexpand(True)
     grid.attach(lab, 0, grid.row, 1, 1)
     grid.attach(widget, 1, grid.row, 1, 1)
@@ -35,9 +35,11 @@ def _entry(text: str, secret: bool = False) -> Gtk.Entry:
 class SettingsWindow(Gtk.Window):
     def __init__(self, parent, cfg: dict, on_save):
         super().__init__(title=t("settings").rstrip("…"), transient_for=parent, modal=True)
-        self.set_default_size(620, 520)
+        self.set_default_size(660, 560)
+        self.add_css_class("settings")
         self.cfg = cfg
         self.on_save = on_save
+        self.kw_lang = current() if current() in STRINGS else "en"
         self.langs = ["auto"] + list(STRINGS)
         self.routes = ["auto", "local", "hermes"]
 
@@ -50,7 +52,7 @@ class SettingsWindow(Gtk.Window):
         nb.append_page(self._providers_tab(), Gtk.Label(label=t("tab_providers")))
         box.append(nb)
 
-        bar = Gtk.Box(spacing=8, halign=Gtk.Align.END, margin_top=8, margin_bottom=8, margin_end=12)
+        bar = Gtk.Box(spacing=8, halign=Gtk.Align.END, margin_top=10, margin_bottom=14, margin_end=20)
         cancel = Gtk.Button(label=t("cancel"))
         cancel.connect("clicked", lambda *_: self.close())
         save = Gtk.Button(label=t("save"), css_classes=["suggested-action"])
@@ -121,13 +123,14 @@ class SettingsWindow(Gtk.Window):
     def _keywords(self):
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8, margin_top=12, margin_bottom=12,
                       margin_start=12, margin_end=12)
-        box.append(Gtk.Label(label=t("keywords_help"), xalign=0, wrap=True))
+        box.append(Gtk.Label(label=t("keywords_help", lang=STRINGS[self.kw_lang]["language_name"]), xalign=0,
+                             wrap=True, css_classes=["dim-label"]))
         self.kw_buf = Gtk.TextBuffer()
-        self.kw_buf.set_text("\n".join(self.cfg["agent_keywords"]))
+        self.kw_buf.set_text("\n".join(self.cfg["agent_keywords"].get(self.kw_lang, [])))
         view = Gtk.TextView(buffer=self.kw_buf, monospace=True, wrap_mode=Gtk.WrapMode.NONE)
         box.append(Gtk.ScrolledWindow(child=view, vexpand=True))
         reset = Gtk.Button(label=t("keywords_reset"), halign=Gtk.Align.START)
-        reset.connect("clicked", lambda *_: self.kw_buf.set_text("\n".join(cfgmod.DEFAULT_AGENT_KEYWORDS)))
+        reset.connect("clicked", lambda *_: self.kw_buf.set_text("\n".join(cfgmod.DEFAULT_AGENT_KEYWORDS.get(self.kw_lang, []))))
         box.append(reset)
         return box
 
@@ -204,7 +207,7 @@ class SettingsWindow(Gtk.Window):
         h["api_key"] = self.w_h_key.get_text()
         h["model"] = self.w_h_model.get_text().strip()
         text = self.kw_buf.get_text(self.kw_buf.get_start_iter(), self.kw_buf.get_end_iter(), False)
-        c["agent_keywords"] = list(dict.fromkeys(ln.strip() for ln in text.splitlines() if ln.strip()))
+        c["agent_keywords"][self.kw_lang] = list(dict.fromkeys(ln.strip() for ln in text.splitlines() if ln.strip()))
         c["providers"] = [
             {
                 "id": w["id"],

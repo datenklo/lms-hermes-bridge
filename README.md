@@ -29,7 +29,7 @@ A hotkey-driven launcher overlay for Ubuntu (GNOME) that bridges your desktop, [
 
 You can override automatic routing in settings: always LM Studio, always Hermes, or always a specific external provider.
 
-**Hermes keywords:** a request goes to Hermes when it contains one of the words or phrases from a built-in list of typical user actions (open, install, delete, create file, send email, remind me, … and their German equivalents). The list is editable under right-click → **Settings…** → **Hermes keywords** (one entry per line, whole words only; a trailing `*` also matches longer forms, e.g. `install*`; articles between words are ignored, so `create file` matches "create a file").
+**Hermes keywords:** a request goes to Hermes when it contains one of the words or phrases from a built-in list of typical user actions (open, install, delete, create file, send email, remind me, … and their German equivalents). There is one list per language (English, German); all of them are used for matching, but the settings tab only shows the list of the current UI language. The lists are editable under right-click → **Settings…** → **Hermes keywords** (one entry per line, whole words only; a trailing `*` also matches longer forms, e.g. `install*`; articles between words are ignored, so `create file` matches "create a file").
 
 ## Requirements
 

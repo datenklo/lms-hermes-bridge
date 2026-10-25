@@ -15,11 +15,26 @@ from .tray import ICON_DIR, Tray  # noqa: E402
 GITHUB_URL = "https://github.com/datenklo/lms-hermes-bridge"
 
 CSS = b"""
-window.bridge { background: alpha(@window_bg_color, 0.97); border-radius: 18px;
-  border: 1px solid alpha(@borders, 0.8); }
-entry.query { font-size: 18px; padding: 10px 14px; }
-label.route { opacity: 0.6; font-size: 11px; }
-textview.answer { font-size: 14px; padding: 8px; background: transparent; }
+window.bridge { background: @window_bg_color; border-radius: 20px; border: 1px solid alpha(@borders, 0.6); }
+window.bridge entry.query { background: transparent; border: none; box-shadow: none; outline: none;
+  font-size: 20px; min-height: 28px; padding: 14px 18px; }
+window.bridge entry.query image { opacity: 0.45; }
+window.bridge separator { opacity: 0.3; }
+window.bridge label.route { font-size: 11px; opacity: 0.55; padding: 2px 18px 6px 18px; }
+window.bridge textview.answer, window.bridge textview.answer text { background: transparent; font-size: 15px; }
+window.bridge textview.answer { padding: 6px 14px 16px 14px; }
+window.bridge popover > contents { border-radius: 12px; }
+
+window.settings { background: @window_bg_color; }
+window.settings notebook > header { background: transparent; border: none; padding: 8px 10px 0 10px; }
+window.settings notebook > header tab { border-radius: 8px; padding: 6px 14px; margin: 0 2px; border: none; }
+window.settings notebook > header tab:checked { background: alpha(@accent_bg_color, 0.15); }
+window.settings notebook > stack { background: transparent; }
+window.settings entry, window.settings dropdown > button { border-radius: 8px; }
+window.settings button { border-radius: 8px; padding: 6px 16px; }
+window.settings frame { border-radius: 12px; border: 1px solid alpha(@borders, 0.6); }
+window.settings textview { border-radius: 8px; padding: 8px; font-size: 13px; }
+window.settings scrolledwindow { border-radius: 10px; border: 1px solid alpha(@borders, 0.5); }
 """
 
 SYSTEM_PROMPT = "You are a concise, helpful desktop assistant on Ubuntu Linux."
@@ -33,20 +48,26 @@ class BridgeWindow(Gtk.ApplicationWindow):
         self.add_css_class("bridge")
         self.set_default_size(720, -1)
 
-        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6, margin_top=10, margin_bottom=10,
-                      margin_start=10, margin_end=10)
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0, margin_top=4, margin_bottom=4,
+                      margin_start=4, margin_end=4)
         self.entry = Gtk.Entry(css_classes=["query"])
+        self.entry.set_icon_from_icon_name(Gtk.EntryIconPosition.PRIMARY, "system-search-symbolic")
         self.entry.connect("activate", self._submit)
         box.append(self.entry)
 
+        result = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        result.append(Gtk.Separator())
         self.route_label = Gtk.Label(xalign=0, css_classes=["route"], wrap=True, visible=False)
-        box.append(self.route_label)
+        result.append(self.route_label)
 
         self.buf = Gtk.TextBuffer()
         view = Gtk.TextView(buffer=self.buf, editable=False, cursor_visible=False, wrap_mode=Gtk.WrapMode.WORD_CHAR,
                             css_classes=["answer"])
-        self.scroller = Gtk.ScrolledWindow(child=view, min_content_height=260, visible=False)
-        box.append(self.scroller)
+        self.scroller = Gtk.ScrolledWindow(child=view, min_content_height=160, max_content_height=420,
+                                           propagate_natural_height=True)
+        result.append(self.scroller)
+        self.answer_revealer = Gtk.Revealer(child=result, transition_type=Gtk.RevealerTransitionType.SLIDE_DOWN)
+        box.append(self.answer_revealer)
         self.set_child(box)
 
         keys = Gtk.EventControllerKey()
@@ -108,7 +129,7 @@ class BridgeWindow(Gtk.ApplicationWindow):
         self.cancel.set()  # stop any previous stream
         self.cancel = threading.Event()
         self.buf.set_text("")
-        self.scroller.set_visible(True)
+        self.answer_revealer.set_reveal_child(True)
         self._status(t("thinking"))
         threading.Thread(target=self._worker, args=(prompt, self.cancel), daemon=True).start()
 

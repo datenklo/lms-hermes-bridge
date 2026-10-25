@@ -9,6 +9,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - Editable "Hermes keywords" list (settings tab) that decides which requests go to Hermes, with a broad built-in default list of typical user actions in English and German. Whole-word matching, trailing `*` for word forms, articles between words are ignored.
 
 ### Changed
+- Keyword lists are split by language (`agent_keywords` is now `{en, de}`; old flat lists are migrated). The settings tab shows only the list of the current UI language; all lists are used for matching.
+- Modernized minimal look: flat search field with icon, animated answer area, rounded corners, calmer settings window.
 - Hermes routing no longer uses a hard-coded pattern; the list lives in the config (`agent_keywords`).
 
 ## [0.2.0] - 2026-10-25
