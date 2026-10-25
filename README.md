@@ -1,5 +1,7 @@
 # LMS Hermes Bridge
 
+🇬🇧 English | 🇩🇪 [Deutsch](README.de.md)
+
 A hotkey-driven launcher overlay for Ubuntu (GNOME) that bridges your desktop, [LM Studio](https://lmstudio.ai), [Hermes](https://github.com/NousResearch/hermes-agent) and optional external LLM APIs (Claude, ChatGPT, GitHub Copilot/Models, any OpenAI-compatible service). Think "Windows Copilot" as a search-style popup: press a key, type a question or task, get an answer.
 
 ## Features
@@ -37,7 +39,7 @@ You can override automatic routing in settings: always LM Studio, always Hermes,
 
 ```bash
 sudo apt install python3-gi gir1.2-gtk-4.0 pipx
-git clone https://github.com/<your-user>/lms-hermes-bridge.git
+git clone https://github.com/datenklo/lms-hermes-bridge.git
 cd lms-hermes-bridge
 ./install.sh
 ```
@@ -72,7 +74,7 @@ Settings are stored in `~/.config/lms-hermes-bridge/config.json` (file mode `060
 PYTHONPATH=src python3 -m pytest
 ```
 
-The routing logic (`router.py`) is pure and unit-tested; UI code lives in `app.py` and `settings_dialog.py`.
+The routing logic (`router.py`) is pure and unit-tested; UI code lives in `app.py` and `settings_dialog.py`. See [docs/TECHNICAL.md](docs/TECHNICAL.md) for the architecture and [CHANGELOG.md](CHANGELOG.md) for release notes.
 
 ## Roadmap
 
