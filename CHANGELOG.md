@@ -3,7 +3,7 @@
 All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [0.3.1] - 2026-10-25
 
 ### Added
 - General settings now include an opt-in/out login autostart switch; changes create or remove only this app's GNOME autostart entry. The installer respects the stored setting.
@@ -66,6 +66,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - English and German user interface.
 - English and German README, technical documentation, installer script, unit tests for the routing logic.
 
+[0.3.1]: https://github.com/datenklo/lms-hermes-bridge/releases/tag/v0.3.1
 [0.3.0]: https://github.com/datenklo/lms-hermes-bridge/releases/tag/v0.3.0
 [0.2.0]: https://github.com/datenklo/lms-hermes-bridge/releases/tag/v0.2.0
 [0.1.0]: https://github.com/datenklo/lms-hermes-bridge/releases/tag/v0.1.0
