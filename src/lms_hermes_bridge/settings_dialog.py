@@ -78,6 +78,10 @@ class SettingsWindow(Gtk.Window):
         self.w_autostart = _row(g, t("autostart_backends"), Gtk.Switch(halign=Gtk.Align.START))
         self.w_autostart.set_active(self.cfg["autostart_backends"])
 
+        self.w_routines = _row(g, t("routines_enabled"), Gtk.Switch(halign=Gtk.Align.START))
+        self.w_routines.set_active(self.cfg["routines_enabled"])
+        self.w_weather_loc = _row(g, t("weather_location"), _entry(self.cfg["weather_location"]))
+
         self.w_routing = _row(g, t("routing"), Gtk.DropDown())
         self._fill_routing()
 
@@ -198,6 +202,8 @@ class SettingsWindow(Gtk.Window):
         c["local_only"] = self.w_local.get_active()
         c["check_components"] = self.w_check.get_active()
         c["autostart_backends"] = self.w_autostart.get_active()
+        c["routines_enabled"] = self.w_routines.get_active()
+        c["weather_location"] = self.w_weather_loc.get_text().strip()
         c["hotkey"] = self.w_hotkey.get_text().strip()
         l = c["lmstudio"]
         l["url"] = self.w_lms_url.get_text().strip()

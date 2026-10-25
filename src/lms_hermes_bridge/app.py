@@ -6,7 +6,7 @@ import gi
 gi.require_version("Gtk", "4.0")
 from gi.repository import Gdk, Gio, GLib, Gtk  # noqa: E402
 
-from . import APP_ID, __version__, config as cfgmod, installer, lmstudio, providers, router, services  # noqa: E402
+from . import APP_ID, __version__, config as cfgmod, installer, lmstudio, providers, router, routines, services  # noqa: E402
 from .i18n import set_language, t  # noqa: E402
 from .install_window import InstallWindow  # noqa: E402
 from .placement import move_to_top  # noqa: E402
@@ -168,6 +168,15 @@ class BridgeWindow(Gtk.ApplicationWindow):
 
     def _worker(self, prompt: str, cancel: threading.Event):
         cfg = self.cfg
+        try:
+            routine = routines.handle(prompt, cfg)
+        except Exception as e:  # a routine bug must never block normal answers
+            routine = None
+            print(f"routine failed: {e}", file=sys.stderr)
+        if routine:
+            self._ui(self._status, t("routine_label", name=t("routine_" + routine.name)))
+            self._ui(self._append, routine.text, cancel)
+            return
         route = self._resolve_route(prompt)
         if route is None:
             key = "err_local_only" if cfg["local_only"] else "err_no_target"

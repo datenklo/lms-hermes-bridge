@@ -6,6 +6,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 ## [Unreleased]
 
 ### Added
+- Built-in routines answered without an LLM: weather (Open-Meteo; places, today/tomorrow/weekday/date/weekend/next days, rain and snow questions, ambiguous places via "City, Region", default location, local-only aware) and help (feature overview with live status, topic help for hotkey, providers, Hermes, local-only, keywords, models, weather). Switchable in the settings.
 - Automatic background start of the local LM Studio server and the Hermes gateway when they are down (at launch and on demand); switchable in the settings.
 - Editable "Hermes keywords" list (settings tab) that decides which requests go to Hermes, with a broad built-in default list of typical user actions in English and German. Whole-word matching, trailing `*` for word forms, articles between words are ignored.
 
