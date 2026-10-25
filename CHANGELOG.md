@@ -3,7 +3,7 @@
 All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [0.4.0] - 2026-10-25
 
 ### Added
 - Desktop context input for clipboard text, primary-selection text, image files and portal-approved screenshots. Image requests always route to local VLMs, irrespective of forced text backend. A capability popover reports image, reasoning and tool-use support; the image-file button is disabled unless the loaded model supports vision. Users can load an installed VLM in the overlay and configure auto-loading/preferred vision model.
@@ -71,6 +71,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - English and German user interface.
 - English and German README, technical documentation, installer script, unit tests for the routing logic.
 
+[0.4.0]: https://github.com/datenklo/lms-hermes-bridge/releases/tag/v0.4.0
 [0.3.1]: https://github.com/datenklo/lms-hermes-bridge/releases/tag/v0.3.1
 [0.3.0]: https://github.com/datenklo/lms-hermes-bridge/releases/tag/v0.3.0
 [0.2.0]: https://github.com/datenklo/lms-hermes-bridge/releases/tag/v0.2.0
