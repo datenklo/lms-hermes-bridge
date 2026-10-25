@@ -120,6 +120,8 @@ DEFAULTS = {
         "preferred_balanced": "",
         "preferred_deep": "",
         "preferred_code": "",
+        "preferred_vision": "",
+        "auto_load_vision_model": True,
     },
     "hermes": {
         "enabled": False,

@@ -47,6 +47,48 @@ def test_embeddings_never_chosen():
     assert router.pick_model([MODELS[-1]], "fast", 32 * GB) is None
 
 
+def test_vision_route_selects_only_image_capable_models():
+    vlm = ModelInfo("gemma4-12b", type="vlm", params_b=12, loaded=False, capabilities=("tool_use",))
+    ordinary = ModelInfo("llama-3.1-8b", type="llm", params_b=8, loaded=True)
+    c = cfg()
+    route = router.decide("describe this", c, [ordinary, vlm], 32 * GB, needs_image=True)
+    assert route.backend == "lmstudio" and route.model == vlm.key and route.needs_load
+    assert route.params["supports_vision"] and route.params["supports_tools"]
+    assert router.pick_model([ordinary], "fast", 32 * GB, require_vision=True) is None
+
+
+def test_vision_prompt_never_falls_back_to_non_vision_backend():
+    c = cfg()
+    c["hermes"]["enabled"] = True
+    assert router.decide("describe image", c, MODELS, 32 * GB, needs_image=True) is None
+
+    c["routing"] = "hermes"
+    vlm = ModelInfo("gemma4-vlm", type="vlm", params_b=12, loaded=True)
+    route = router.decide("describe image", c, [vlm], 32 * GB, needs_image=True)
+    assert route.backend == "lmstudio" and route.model == vlm.key
+
+    c["routing"] = "provider:p1"
+    assert router.decide("describe image", c, [], 32 * GB, needs_image=True) is None
+
+
+def test_model_capabilities_use_api_type_and_metadata():
+    vlm = ModelInfo("some-model", type="vlm", capabilities=("tool_use", "reasoning"))
+    assert vlm.supports_vision and vlm.supports_tools and vlm.supports_thinking
+    reasoning_model = ModelInfo("deepseek-r1-8b")
+    assert reasoning_model.supports_thinking
+
+
+def test_lmstudio_model_listing_keeps_capability_metadata(monkeypatch):
+    from lms_hermes_bridge import lmstudio
+    monkeypatch.setattr(lmstudio, "_get_json", lambda _url: {"data": [{
+        "id": "vision-test", "type": "vlm", "state": "loaded", "max_context_length": 8192,
+        "capabilities": ["tool_use", "reasoning"],
+    }]})
+    monkeypatch.setattr(lmstudio, "_cli_sizes", lambda: {})
+    model = lmstudio.list_models("http://localhost:1234")[0]
+    assert model.supports_vision and model.supports_tools and model.supports_thinking
+
+
 def test_decide_local_and_fallbacks():
     r = router.decide("hi there", cfg(), MODELS, 32 * GB)
     assert r.backend == "lmstudio" and r.params["context"] <= 4096

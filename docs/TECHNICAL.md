@@ -28,6 +28,8 @@ flowchart LR
 | `app.py` | `BridgeApp` (single instance, actions, command line `--background`), `BridgeWindow` (overlay, right-click menu, worker thread), About dialog |
 | `router.py` | Pure decision logic: `classify`, `pick_model`, `decide`, `TIER_PARAMS`. No I/O |
 | `lmstudio.py` | Model discovery (`GET /api/v0/models`, `lms ls --json` for sizes), `lms load/unload`, RAM detection |
+| `desktop_context.py` | Clipboard/image payload validation and XDG Screenshot portal capture, with a 16 MB image limit |
+| `desktop_context.py` | Clipboard/image payload validation and XDG Screenshot portal capture, with a 16 MB image limit |
 | `providers.py` | Streaming clients: OpenAI-compatible (`/chat/completions`) and Anthropic (`/v1/messages`), SSE parsing, `ChatError` |
 | `config.py` | JSON config in `~/.config/lms-hermes-bridge/config.json` (mode `0600`), defaults, deep merge, provider presets |
 | `settings_dialog.py` | Tabbed settings window (General, LM Studio, Hermes, External models) |
@@ -43,11 +45,12 @@ flowchart LR
 
 ## Request flow
 
-1. `Enter` in the overlay starts a daemon thread (`_worker`); a `threading.Event` cancels the previous stream.
-2. `lmstudio.list_models` fetches the model list. `None` means the server is unreachable.
-3. `router.decide` returns a `Route` (backend, tier, model, params, `needs_load`) or `None`.
-4. If the model is not loaded and auto-load is on, `lms load` runs (optionally after `lms unload --all`).
-5. `providers.stream` yields text chunks; each is marshalled to the UI thread with `GLib.idle_add`.
+1. Context controls capture clipboard text, primary-selection text, image files, or a user-confirmed screenshot through the XDG Desktop Portal. Context is displayed beside the input and included with the prompt on submit.
+2. `Enter` in the overlay starts a daemon thread (`_worker`); a `threading.Event` cancels the previous stream.
+3. `lmstudio.list_models` fetches model type and capability metadata. `None` means the server is unreachable.
+4. For image input, `router.decide(..., needs_image=True)` filters to VLMs only; it never silently routes an image to a text-only backend. Auto-load uses `lmstudio.auto_load_vision_model`; `preferred_vision` can pin a model key.
+5. If the model is not loaded and auto-load is on, `lms load` runs (optionally after `lms unload --all`).
+6. The client sends OpenAI image data-URL blocks; the Anthropic client converts them to Messages API base64 source blocks. SSE text is marshalled to the UI thread with `GLib.idle_add`.
 
 All UI updates happen on the GTK main thread; worker code never touches widgets directly.
 
@@ -96,7 +99,8 @@ Wayland forbids application-wide global shortcuts, so the app registers a GNOME 
   "local_only": false,
   "routing": "auto|local|hermes|provider:<id>",
   "lmstudio": { "url": "...", "auto_load": true, "unload_others": true,
-                "preferred_fast|balanced|deep|code": "" },
+                "auto_load_vision_model": true,
+                "preferred_fast|balanced|deep|code|vision": "" },
   "hermes": { "enabled": false, "endpoint": "...", "api_key": "", "model": "" },
   "providers": [ { "id": "", "name": "", "kind": "openai|anthropic",
                    "endpoint": "", "api_key": "", "model": "", "enabled": true } ],

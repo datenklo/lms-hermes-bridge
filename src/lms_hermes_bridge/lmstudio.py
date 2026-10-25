@@ -18,10 +18,26 @@ class ModelInfo:
     params_b: float = 0.0  # billions of parameters (0 = unknown)
     size_bytes: int = 0
     max_context: int = 4096
+    capabilities: tuple[str, ...] = ()
 
     @property
     def is_chat(self) -> bool:
         return self.type in ("llm", "vlm")
+
+    @property
+    def supports_vision(self) -> bool:
+        caps = {c.lower() for c in self.capabilities}
+        return self.type.lower() in ("vlm", "vision") or bool(caps & {"vision", "image", "image_input"})
+
+    @property
+    def supports_tools(self) -> bool:
+        return bool({c.lower() for c in self.capabilities} & {"tool_use", "tools", "function_calling"})
+
+    @property
+    def supports_thinking(self) -> bool:
+        if {c.lower() for c in self.capabilities} & {"reasoning", "thinking"}:
+            return True
+        return bool(re.search(r"(?:deepseek[-_ ]?r1|qwq|reason(?:ing)?|think(?:ing)?)", self.key, re.I))
 
 
 def parse_params_b(text: str) -> float:
@@ -59,6 +75,7 @@ def list_models(base_url: str) -> list[ModelInfo] | None:
                 params_b=parse_params_b(key),
                 size_bytes=sizes.get(key, 0),
                 max_context=int(d.get("max_context_length") or 4096),
+                capabilities=tuple(d.get("capabilities") or ()),
             )
         )
     return models

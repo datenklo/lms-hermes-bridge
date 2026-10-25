@@ -1,5 +1,6 @@
 """Streaming chat clients for OpenAI-compatible and Anthropic endpoints (stdlib only)."""
 import json
+import re
 import urllib.error
 import urllib.request
 from typing import Iterator
@@ -33,6 +34,28 @@ def _sse(resp) -> Iterator[dict]:
             continue
 
 
+def _anthropic_messages(messages: list) -> list:
+    """Translate OpenAI image_url data blocks to Anthropic base64 source blocks."""
+    out = []
+    for message in messages:
+        content = message.get("content")
+        if not isinstance(content, list):
+            out.append(message)
+            continue
+        blocks = []
+        for block in content:
+            if block.get("type") != "image_url":
+                blocks.append(block)
+                continue
+            url = block.get("image_url", {}).get("url", "")
+            match = re.fullmatch(r"data:(image/[a-zA-Z0-9.+-]+);base64,(.+)", url, re.S)
+            if match:
+                blocks.append({"type": "image", "source": {
+                    "type": "base64", "media_type": match.group(1), "data": match.group(2)}})
+        out.append({**message, "content": blocks})
+    return out
+
+
 def stream_openai(endpoint: str, api_key: str, model: str, messages: list, params: dict) -> Iterator[str]:
     body = {"model": model, "messages": messages, "stream": True}
     if "temperature" in params:
@@ -56,7 +79,7 @@ def stream_anthropic(endpoint: str, api_key: str, model: str, messages: list, pa
     body = {
         "model": model,
         "max_tokens": params.get("max_tokens", 2048),
-        "messages": [m for m in messages if m["role"] != "system"],
+        "messages": _anthropic_messages([m for m in messages if m["role"] != "system"]),
         "stream": True,
     }
     if system:

@@ -223,8 +223,10 @@ class SettingsWindow(Gtk.Window):
         self.w_lms_load = _row(g, t("lms_auto_load"), Gtk.Switch(halign=Gtk.Align.START, active=c["auto_load"]))
         self.w_lms_unload = _row(g, t("lms_unload"), Gtk.Switch(halign=Gtk.Align.START, active=c["unload_others"]))
         self.w_pref = {}
-        for tier in ("fast", "balanced", "deep", "code"):
+        for tier in ("fast", "balanced", "deep", "code", "vision"):
             self.w_pref[tier] = _row(g, t("pref_" + tier), _entry(c[f"preferred_{tier}"]))
+        self.w_auto_vision = _row(g, t("auto_load_vision"), Gtk.Switch(halign=Gtk.Align.START))
+        self.w_auto_vision.set_active(c["auto_load_vision_model"])
         return g
 
     def _hermes(self):
@@ -330,7 +332,10 @@ class SettingsWindow(Gtk.Window):
         l["auto_load"] = self.w_lms_load.get_active()
         l["unload_others"] = self.w_lms_unload.get_active()
         for tier, e in self.w_pref.items():
-            l[f"preferred_{tier}"] = e.get_text().strip()
+            if tier != "vision":
+                l[f"preferred_{tier}"] = e.get_text().strip()
+        l["preferred_vision"] = self.w_pref["vision"].get_text().strip()
+        l["auto_load_vision_model"] = self.w_auto_vision.get_active()
         h = c["hermes"]
         h["enabled"] = self.w_h_on.get_active()
         h["endpoint"] = self.w_h_url.get_text().strip()
