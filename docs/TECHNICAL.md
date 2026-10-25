@@ -29,6 +29,8 @@ flowchart LR
 | `router.py` | Pure decision logic: `classify`, `pick_model`, `decide`, `TIER_PARAMS`. No I/O |
 | `lmstudio.py` | Model discovery (`GET /api/v0/models`, `lms ls --json` for sizes), `lms load/unload`, RAM detection |
 | `desktop_context.py` | Clipboard/image payload validation and XDG Screenshot portal capture, with a 16 MB image limit |
+| `updater.py` | Finds pipx's PEP 610 source checkout, verifies the expected GitHub remote, refuses dirty/non-main checkouts, fast-forward pulls and reinstalls with pipx |
+| `update_window.py` | Confirmation-progress UI for updating; offers restart only after a successful reinstall |
 | `desktop_context.py` | Clipboard/image payload validation and XDG Screenshot portal capture, with a 16 MB image limit |
 | `providers.py` | Streaming clients: OpenAI-compatible (`/chat/completions`) and Anthropic (`/v1/messages`), SSE parsing, `ChatError` |
 | `config.py` | JSON config in `~/.config/lms-hermes-bridge/config.json` (mode `0600`), defaults, deep merge, provider presets |
@@ -37,6 +39,7 @@ flowchart LR
 | `hotkey.py` | Registers a GNOME custom keybinding through `gsettings` (`Gio.Settings`) |
 | `services.py` | Starts the local LM Studio server (`lms server start`, falling back to `lms daemon up`) and the Hermes gateway (`hermes gateway start`) when their health checks fail, then polls until they answer. Skips remote URLs, uninstalled tools and the disabled setting |
 | `placement.py` | Moves the overlay to the top centre with `XMoveWindow` via ctypes; needs the X11 backend, which `__init__.py` selects on Wayland sessions |
+| `placement.py` | Moves the overlay to the top centre with `XMoveWindow` and requests EWMH `_NET_WM_STATE_ABOVE`; needs the X11 backend, which `__init__.py` selects on Wayland sessions |
 | `keywords.py` | Compiles keyword lists (whole words, trailing `*` for word forms, filler articles) shared by the Hermes router and the routines table |
 | `routines.py` | Built-in answers before any routing: weather (date phrase parser, location extraction, Open-Meteo geocoding + forecast, WMO code texts) and help (strong/weak triggers, topic matching, live status probe). `fetch`/`probe` are injectable for tests |
 | `installer.py` | Detects a missing local LM Studio / Hermes (remote endpoints are ignored) and runs the official install script (`curl -fsSL <url> \| bash`) in a thread, streaming output; after LM Studio it runs `lms server start` |

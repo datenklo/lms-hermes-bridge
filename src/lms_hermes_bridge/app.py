@@ -1,4 +1,5 @@
 import sys
+import subprocess
 import threading
 
 import gi
@@ -8,11 +9,13 @@ from gi.repository import Gdk, Gio, GLib, Gtk  # noqa: E402
 
 from . import APP_ID, __version__, config as cfgmod, hotkey, installer, lmstudio, providers, router, routines, services  # noqa: E402
 from . import desktop_context  # noqa: E402
+from . import updater  # noqa: E402
 from .i18n import set_language, t  # noqa: E402
 from .install_window import InstallWindow  # noqa: E402
 from .placement import move_to_top  # noqa: E402
 from .settings_dialog import SettingsWindow  # noqa: E402
 from .tray import ICON_DIR, Tray  # noqa: E402
+from .update_window import UpdateWindow  # noqa: E402
 
 GITHUB_URL = "https://github.com/datenklo/lms-hermes-bridge"
 
@@ -127,6 +130,7 @@ class BridgeWindow(Gtk.ApplicationWindow):
 
         menu = Gio.Menu()
         menu.append(t("settings"), "app.settings")
+        menu.append(t("update"), "app.update")
         menu.append(t("about"), "app.about")
         menu.append(t("quit"), "app.quit")
         self.popover = Gtk.PopoverMenu.new_from_model(menu)
@@ -135,6 +139,7 @@ class BridgeWindow(Gtk.ApplicationWindow):
         self.entry.set_placeholder_text(t("placeholder"))
 
         self.connect("notify::is-active", self._on_active)
+        self.connect("notify::is-active", self._keep_above)
         self._update_context_status()
         threading.Thread(target=self._query_model_capabilities, daemon=True).start()
 
@@ -310,7 +315,16 @@ class BridgeWindow(Gtk.ApplicationWindow):
         GLib.timeout_add(40, self._place)  # the surface must be mapped before it can be moved
 
     def _place(self):
-        move_to_top(self)
+        move_to_top(self, keep_above=True)
+        return False
+
+    def _keep_above(self, *_):
+        if self.get_visible():
+            GLib.timeout_add(50, self._raise_above)
+
+    def _raise_above(self):
+        if self.get_visible():
+            move_to_top(self, keep_above=True)
         return False
 
     # -- query flow -----------------------------------------------------
@@ -453,7 +467,7 @@ class BridgeApp(Gtk.Application):
         Gtk.StyleContext.add_provider_for_display(Gdk.Display.get_default(), prov,
                                                   Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
         for name, cb in (("settings", self.open_settings), ("about", self.open_about),
-                         ("quit", lambda *_: self.quit())):
+                         ("update", self.open_update), ("quit", lambda *_: self.quit())):
             act = Gio.SimpleAction.new(name, None)
             act.connect("activate", cb)
             self.add_action(act)
@@ -461,6 +475,7 @@ class BridgeApp(Gtk.Application):
         hotkey.refresh_command()
         try:
             self.tray = Tray(self._tray_toggle, [(lambda: t("settings"), self.open_settings),
+                                           (lambda: t("update"), self.open_update),
                                            (lambda: t("about"), self.open_about),
                                            (lambda: t("quit"), self.quit)])
             self.tray.start()
@@ -546,6 +561,33 @@ class BridgeApp(Gtk.Application):
         except GLib.Error:
             pass
         dlg.present()
+
+    def open_update(self, *_):
+        self._ensure_window()
+        dlg = Gtk.AlertDialog(message=t("update_confirm_title"), detail=t("update_confirm_body"),
+                              buttons=[t("update_now"), t("cancel")], default_button=1, cancel_button=1)
+        dlg.choose(self.win, None, self._on_update_choice)
+
+    def _on_update_choice(self, dlg, result):
+        try:
+            choice = dlg.choose_finish(result)
+        except GLib.Error:
+            return
+        if choice == 0:
+            UpdateWindow(self.win, self._restart_after_update).present()
+
+    def _restart_after_update(self):
+        self._restart_after_update_requested = True
+        self.quit()
+
+    def do_shutdown(self):
+        Gtk.Application.do_shutdown(self)
+        if getattr(self, "_restart_after_update_requested", False):
+            try:
+                subprocess.Popen(updater.restart_command(), stdin=subprocess.DEVNULL,
+                                 stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
+            except OSError as e:
+                print(f"Could not restart after update: {e}", file=sys.stderr)
 
     def _reload(self):
         set_language(self.cfg["language"])

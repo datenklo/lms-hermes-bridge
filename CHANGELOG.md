@@ -3,6 +3,12 @@
 All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+- App/tray menu action to update the clean official `main` checkout and reinstall the pipx app; local changes are refused and a restart is offered after success.
+- Overlay requests EWMH always-above state and reapplies it on show/reactivation.
+
 ## [0.4.0] - 2026-10-25
 
 ### Added

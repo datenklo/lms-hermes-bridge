@@ -29,6 +29,8 @@ flowchart LR
 | `router.py` | Reine Entscheidungslogik: `classify`, `pick_model`, `decide`, `TIER_PARAMS`. Keine Ein-/Ausgabe |
 | `lmstudio.py` | Modellerkennung (`GET /api/v0/models`, `lms ls --json` für Größen), `lms load/unload`, RAM-Erkennung |
 | `desktop_context.py` | Zwischenablage-/Bildvalidierung und Screenshot-Aufnahme über das XDG-Screenshot-Portal, Bildlimit 16 MB |
+| `updater.py` | Findet den pipx-Quellcheckout über PEP 610, prüft das offizielle GitHub-Remote, lehnt dirty/nicht-main Checkouts ab, zieht per Fast-Forward und installiert mit pipx neu |
+| `update_window.py` | Bestätigungs-/Fortschrittsfenster; Neustart wird nur nach erfolgreicher Neuinstallation angeboten |
 | `desktop_context.py` | Zwischenablage-/Bildvalidierung und Screenshot-Aufnahme über das XDG-Screenshot-Portal, Bildlimit 16 MB |
 | `providers.py` | Streaming-Clients: OpenAI-kompatibel (`/chat/completions`) und Anthropic (`/v1/messages`), SSE-Parsing, `ChatError` |
 | `config.py` | JSON-Konfiguration in `~/.config/lms-hermes-bridge/config.json` (Rechte `0600`), Standardwerte, tiefes Zusammenführen, Anbieter-Vorlagen |
@@ -37,6 +39,7 @@ flowchart LR
 | `hotkey.py` | Registriert einen GNOME-Shortcut über `gsettings` (`Gio.Settings`) |
 | `services.py` | Startet den lokalen LM-Studio-Server (`lms server start`, Ausweichen auf `lms daemon up`) und das Hermes-Gateway (`hermes gateway start`), wenn deren Health-Check fehlschlägt, und wartet dann auf die Antwort. Überspringt entfernte URLs, nicht installierte Programme und die abgeschaltete Einstellung |
 | `placement.py` | Verschiebt das Overlay per `XMoveWindow` (ctypes) an den oberen Rand in der Mitte; braucht das X11-Backend, das `__init__.py` in Wayland-Sitzungen wählt |
+| `placement.py` | Verschiebt das Overlay per `XMoveWindow` (ctypes) nach oben mittig und fordert EWMH `_NET_WM_STATE_ABOVE` an; braucht das X11-Backend, das `__init__.py` in Wayland-Sitzungen wählt |
 | `keywords.py` | Kompiliert Stichwortlisten (ganze Wörter, `*` am Ende für Wortformen, Füllartikel); gemeinsam genutzt von Hermes-Router und Routinen-Tabelle |
 | `routines.py` | Eingebaute Antworten vor dem Routing: Wetter (Datumsparser, Ortserkennung, Open-Meteo-Geocoding und -Vorhersage, WMO-Texte) und Hilfe (starke/schwache Auslöser, Themenabgleich, Live-Statusabfrage). `fetch`/`probe` sind für Tests austauschbar |
 | `installer.py` | Erkennt ein fehlendes lokales LM Studio / Hermes (entfernte Endpunkte werden ignoriert) und führt das offizielle Installationsskript (`curl -fsSL <url> \| bash`) in einem Thread aus, mit Live-Ausgabe; nach LM Studio folgt `lms server start` |
