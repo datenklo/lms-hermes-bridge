@@ -176,7 +176,7 @@ class BridgeApp(Gtk.Application):
             self.add_action(act)
         self.hold()  # stay alive while the overlay is hidden
         try:
-            self.tray = Tray(self._tray_toggle, self.open_settings)
+            self.tray = Tray(self._tray_toggle, [(lambda: t("settings"), self.open_settings), (lambda: t("quit"), self.quit)])
             self.tray.start()
         except Exception:
             self.tray = None  # no D-Bus session: run without tray icon
