@@ -1,0 +1,13 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=LMS Hermes Bridge
+Name[de]=LMS Hermes Bridge
+Comment=Ask LM Studio, Hermes and other AI models
+Comment[de]=Fragen an LM Studio, Hermes und andere KI-Modelle
+Exec=@EXEC@
+Icon=io.github.lmshermesbridge
+Terminal=false
+Categories=Utility;
+Keywords=assistant;AI;LLM;Hermes;LM Studio;
+StartupNotify=false

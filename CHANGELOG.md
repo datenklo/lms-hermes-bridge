@@ -6,6 +6,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 ## [Unreleased]
 
 ### Added
+- Installer adds an Ubuntu Applications-menu launcher with the brain icon.
 - Built-in desktop routines open the browser, home folder, Downloads, terminal, calculator and GNOME system settings without Hermes. The fixed commands can be disabled and their keywords extended in the routines table.
 
 ### Fixed
