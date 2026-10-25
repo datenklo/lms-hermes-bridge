@@ -53,7 +53,7 @@ Alle UI-Änderungen passieren im GTK-Hauptthread; der Worker-Code greift nie dir
 
 ## Routinen-Tabelle
 
-`config["routines"]` ist eine Liste von Zeilen `{id, name, enabled, keywords, action, value}`. `routines.handle()` prüft zuerst eigene Zeilen (von oben nach unten), dann die eingebauten Zeilen `weather`/`help`, die ihre eigene Erkennung plus Zusatz-Stichwörter nutzen. Aktionen: `answer` (Text), `command` (argv per `shlex`, Platzhalter je Argument ersetzt, ohne Shell losgelöst gestartet), `url` (`xdg-open`, nur http/https/mailto, `{input}` URL-kodiert), `hermes`/`llm` (ein `Redirect`, der den Prompt umschreibt; `hermes` erzwingt das Hermes-Backend). `config.normalize_routines()` entfernt defekte Zeilen und ergänzt fehlende eingebaute Zeilen.
+`config["routines"]` ist eine Liste von Zeilen `{id, name, enabled, keywords, action, value}`. `routines.handle()` prüft zuerst eigene Zeilen (von oben nach unten), dann die eingebauten Zeilen `weather`/`help`, die ihre eigene Erkennung plus Zusatz-Stichwörter nutzen. Die eingebaute Google-Zeile öffnet eine Google-Suche mit `xdg-open` im Standardbrowser; sie nimmt die Suchbegriffe nach dem Stichwort und entfernt übliche Satzenden. Aktionen: `answer` (Text), `command` (argv per `shlex`, Platzhalter je Argument ersetzt, ohne Shell losgelöst gestartet), `url` (`xdg-open`, nur http/https/mailto, `{input}` URL-kodiert), `hermes`/`llm` (ein `Redirect`, der den Prompt umschreibt; `hermes` erzwingt das Hermes-Backend). `config.normalize_routines()` entfernt defekte Zeilen und ergänzt fehlende eingebaute Zeilen.
 
 ## Routing
 

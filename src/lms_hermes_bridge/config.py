@@ -56,13 +56,17 @@ DEFAULT_AGENT_KEYWORDS = {
     ],
 }
 
-BUILTIN_ROUTINES = ("builtin:weather", "builtin:help")
+BUILTIN_ROUTINES = ("builtin:weather", "builtin:help", "builtin:google")
 ACTIONS = ("weather", "help", "answer", "command", "url", "hermes", "llm")
 
 # Built-in rows only add extra keywords (their own detection stays on); the others are fully user-defined.
 DEFAULT_ROUTINES = [
     {"id": "builtin:weather", "name": "Weather", "enabled": True, "keywords": [], "action": "weather", "value": ""},
     {"id": "builtin:help", "name": "Help", "enabled": True, "keywords": [], "action": "help", "value": ""},
+    {"id": "builtin:google", "name": "Google search", "enabled": True,
+     "keywords": ["suche bei google nach", "bei google nach", "google nach", "suche google nach",
+                  "google for", "search google for", "google*"],
+     "action": "url", "value": "https://www.google.com/search?q={input}"},
     {"id": "example:search", "name": "Web search", "enabled": True,
      "keywords": ["suche im web nach", "suche im internet nach", "search the web for", "web search"],
      "action": "url", "value": "https://duckduckgo.com/?q={input}"},

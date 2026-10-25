@@ -53,7 +53,7 @@ All UI updates happen on the GTK main thread; worker code never touches widgets 
 
 ## Routines table
 
-`config["routines"]` is a list of rows `{id, name, enabled, keywords, action, value}`. `routines.handle()` checks user rows first (top to bottom), then the built-in `weather`/`help` rows, which use their own detection plus any extra keywords. Actions: `answer` (text), `command` (argv via `shlex`, placeholders substituted per argument, started detached without a shell), `url` (`xdg-open`, only http/https/mailto, `{input}` URL-encoded), `hermes`/`llm` (a `Redirect` that rewrites the prompt; `hermes` forces the Hermes backend). `config.normalize_routines()` drops malformed rows and re-adds missing built-in rows.
+`config["routines"]` is a list of rows `{id, name, enabled, keywords, action, value}`. `routines.handle()` checks user rows first (top to bottom), then the built-in `weather`/`help` rows, which use their own detection plus any extra keywords. The built-in Google row opens a Google query in the desktop's default browser via `xdg-open`; it extracts the query after the matched phrase and trims common request suffixes. Actions: `answer` (text), `command` (argv via `shlex`, placeholders substituted per argument, started detached without a shell), `url` (`xdg-open`, only http/https/mailto, `{input}` URL-encoded), `hermes`/`llm` (a `Redirect` that rewrites the prompt; `hermes` forces the Hermes backend). `config.normalize_routines()` drops malformed rows and re-adds missing built-in rows.
 
 ## Routing
 

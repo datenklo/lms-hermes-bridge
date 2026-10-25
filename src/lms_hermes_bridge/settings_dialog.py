@@ -165,6 +165,8 @@ class SettingsWindow(Gtk.Window):
                                  "kw": kw, "act": act, "actions": actions, "value": value, "builtin": builtin})
 
     def _row_name(self, row: dict) -> str:
+        if row["id"] == "builtin:google":
+            return t("routine_google")
         return t("routine_" + row["action"]) if row["id"] in cfgmod.BUILTIN_ROUTINES else row.get("name", "")
 
     @staticmethod

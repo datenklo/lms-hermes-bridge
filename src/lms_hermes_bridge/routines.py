@@ -517,10 +517,20 @@ def _spawn(argv: list[str]) -> None:
                      start_new_session=True)
 
 
-def run_custom(row: dict, prompt: str, match: re.Match, lang: str, launcher=None) -> Result | Redirect:
+def _google_query(prompt: str, match: re.Match) -> str:
+    query = prompt[match.end():].strip(" \t,.:;!?\"'„“")
+    query = re.sub(r"\s+(?:gesucht|suchen|search(?:ed)?|finden|soll(?:en)?|werden|wird)\b.*$", "", query,
+                   flags=re.I).strip(" \t,.:;!?\"'„“")
+    return query
+
+
+def run_custom(row: dict, prompt: str, match: re.Match, lang: str, launcher=None,
+               input_override: str | None = None) -> Result | Redirect:
     m, spawn = R[lang], launcher or _spawn
     action, value, label = row["action"], row.get("value", "").strip(), row.get("name") or row["action"]
-    text = input_text(prompt, match)
+    if row.get("id") == "builtin:google":
+        label = i18n.t("routine_google")
+    text = input_text(prompt, match) if input_override is None else input_override
     if not value:
         return Result("custom", lang, m["empty"], label)
     if action == "answer":
@@ -563,7 +573,8 @@ def handle(prompt: str, cfg: dict, fetch=None, probe=None, today: date | None = 
             continue
         match = find(prompt, r.get("keywords", []))
         if match:
-            return run_custom(r, prompt, match, lang, launcher)
+            extra = _google_query(prompt, match) if r["id"] == "builtin:google" else None
+            return run_custom(r, prompt, match, lang, launcher, extra)
     for r in rows:
         extra = find(prompt, r.get("keywords", []))
         if r["action"] == "help" and (extra or is_help(prompt)):

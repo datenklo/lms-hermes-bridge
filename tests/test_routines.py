@@ -227,7 +227,42 @@ def test_config_normalizes_and_migrates_routines():
     c = config.normalize_routines({"routines": [{"id": "x", "action": "bogus"}, {"id": "ok", "action": "answer",
                                    "keywords": ["a", " "], "value": 5}, "junk"]})
     ids = [r["id"] for r in c["routines"]]
-    assert ids == ["ok", "builtin:weather", "builtin:help"] and c["routines"][0]["keywords"] == ["a"]
+    assert ids == ["ok", "builtin:weather", "builtin:help", "builtin:google"]
+    assert c["routines"][0]["keywords"] == ["a"]
     raw = {"routine_help": False}
     config._migrate_routine_flags(raw)
     assert [r["enabled"] for r in raw["routines"][:2]] == [True, False]
+
+
+def test_google_search_opens_encoded_query_in_default_browser():
+    from urllib.parse import quote_plus
+    from lms_hermes_bridge import i18n
+    i18n.set_language("de")
+    cfg = copy.deepcopy(DEFAULTS)
+    launched = []
+    prompt = "Ich wollte, das der Browser geöffnet wird und bei google nach Capybara-Türstoppern gesucht werden soll"
+    result = routines.handle(prompt, cfg, launcher=launched.append)
+    expected = "https://www.google.com/search?q=" + quote_plus("Capybara-Türstoppern")
+    assert launched == [["xdg-open", expected]]
+    assert result.label == "Google-Suche" and expected in result.text
+
+
+def test_google_search_accepts_direct_and_english_phrasings():
+    from urllib.parse import quote_plus
+    cfg = copy.deepcopy(DEFAULTS)
+    for prompt, query in (("Öffne Browser und suche bei Google nach Gartenstühlen", "Gartenstühlen"),
+                          ("google nach capybara doorstoppers", "capybara doorstoppers"),
+                          ("search google for capybara doorstoppers", "capybara doorstoppers")):
+        launched = []
+        result = routines.handle(prompt, cfg, launcher=launched.append)
+        assert launched == [["xdg-open", "https://www.google.com/search?q=" + quote_plus(query)]], prompt
+        assert result is not None
+
+
+def test_google_builtin_can_be_disabled():
+    cfg = copy.deepcopy(DEFAULTS)
+    cfg["routines"] = [dict(r, enabled=False) if r["id"] == "builtin:google" else r
+                        for r in cfg["routines"]]
+    launched = []
+    assert routines.handle("google nach capybara", cfg, launcher=launched.append) is None
+    assert not launched
