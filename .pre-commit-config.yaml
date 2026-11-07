@@ -1,0 +1,30 @@
+# Pre-commit-Hooks für lms-hermes-bridge.
+# GTK/PyGObject kommt vom System (apt), mypy bleibt deshalb erst einmal außen
+# vor — die Importe lassen sich ohne die GObject-Stubs nicht sauber prüfen.
+# check-json/check-yaml sind bewusst nicht aktiv: tests/fixtures/gtk_probe.jsonl
+# ist JSONLines (eine Datei pro Zeile) und scheitert am normalen JSON-Parser.
+minimum_pre_commit_version: "3.5.0"
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-merge-conflict
+      - id: check-added-large-files
+        args: ["--maxkb", "512"]
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.17.4
+    hooks:
+      - id: ruff
+        args: ["--fix", "--extend-select", "E4"]
+        # E4 ist in app.py per noqa: E402 freigegeben. Ohne E4 ist die Freigabe
+        # wirkungslos, weil die Regel in der Default-Auswahl gar nicht läuft.
+      - id: ruff-format
+
+  - repo: https://github.com/shellcheck-py/shellcheck-py
+    rev: v0.11.0.1
+    hooks:
+      - id: shellcheck
