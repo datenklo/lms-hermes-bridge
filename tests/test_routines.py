@@ -270,8 +270,9 @@ def test_google_builtin_can_be_disabled():
     assert not launched
 
 
-def test_simple_desktop_actions_do_not_need_hermes():
+def test_simple_desktop_actions_do_not_need_hermes(monkeypatch):
     from pathlib import Path
+    monkeypatch.setattr(routines.shutil, "which", lambda name: name if name == "x-terminal-emulator" else None)
     cases = [
         ("Öffne den Browser", ["xdg-open", "https://www.google.com/"]),
         ("Öffne den Home-Ordner", ["xdg-open", str(Path.home())]),
@@ -285,3 +286,11 @@ def test_simple_desktop_actions_do_not_need_hermes():
         result = routines.handle(prompt, cfg(), launcher=launched.append)
         assert launched == [expected], prompt
         assert result.name == "custom" and result.label
+
+
+def test_terminal_uses_gnome_terminal_when_debian_alternative_is_missing(monkeypatch):
+    monkeypatch.setattr(routines.shutil, "which", lambda name: name if name == "gnome-terminal" else None)
+    launched = []
+    result = routines.handle("open terminal", cfg(), launcher=launched.append)
+    assert launched == [["gnome-terminal"]]
+    assert result.name == "custom"

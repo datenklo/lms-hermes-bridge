@@ -44,7 +44,7 @@ In den Einstellungen lässt sich das Routing überschreiben: immer LM Studio, im
 
 ## Voraussetzungen
 
-- Ubuntu 24.04+ mit GNOME (X11 oder Wayland; unter Wayland läuft die App über XWayland, damit das Fenster oben platziert werden kann)
+- Ubuntu 24.04+ oder Arch Linux / Arch-basierte Distributionen wie CachyOS mit GNOME (X11 oder Wayland; unter Wayland läuft die App über XWayland, damit das Fenster oben platziert werden kann)
 - `python3-gi` und `gir1.2-gtk-4.0`
 - LM Studio mit aktiviertem lokalem Server (Standard `http://localhost:1234`) und der `lms`-CLI (`~/.lmstudio/bin/lms`)
 - Optional: ein laufender Hermes-Agent-API-Server
@@ -57,6 +57,14 @@ git clone https://github.com/datenklo/lms-hermes-bridge.git
 cd lms-hermes-bridge
 ./install.sh
 ```
+
+Unter Arch Linux und CachyOS stattdessen die Systemabhängigkeiten installieren:
+
+```bash
+sudo pacman -S python-gobject gtk4 python-pipx xorg-xwayland libx11 gnome-terminal xdg-desktop-portal-gnome
+```
+
+Danach das Repository wie oben klonen und `./install.sh` ausführen. Für das Trayicon eine GNOME-Shell-Erweiterung für AppIndicator / StatusNotifierItem aktivieren. Der globale Shortcut benötigt eine GNOME-Sitzung; die Fensterplatzierung unter Wayland benötigt XWayland und `DISPLAY`.
 
 `install.sh` installiert die App mit `pipx` (mit System-Site-Packages für PyGObject), fügt **LMS Hermes Bridge** mit Gehirn-Icon zum Ubuntu-Anwendungsmenü hinzu, übernimmt die Autostart-Einstellung nach der Anmeldung und registriert die Standard-Tastenkombination als GNOME-Shortcut. Der Autostart lässt sich später unter Rechtsklick → **Einstellungen…** → **Allgemein** ändern.
 

@@ -44,7 +44,7 @@ You can override automatic routing in settings: always LM Studio, always Hermes,
 
 ## Requirements
 
-- Ubuntu 24.04+ with GNOME (X11 or Wayland; on Wayland the app runs through XWayland so the window can be placed at the top)
+- Ubuntu 24.04+ or Arch Linux / Arch-based distributions such as CachyOS with GNOME (X11 or Wayland; on Wayland the app runs through XWayland so the window can be placed at the top)
 - `python3-gi` and `gir1.2-gtk-4.0`
 - LM Studio with its local server enabled (default `http://localhost:1234`) and the `lms` CLI (`~/.lmstudio/bin/lms`)
 - Optional: a running Hermes agent API server
@@ -57,6 +57,14 @@ git clone https://github.com/datenklo/lms-hermes-bridge.git
 cd lms-hermes-bridge
 ./install.sh
 ```
+
+On Arch Linux and CachyOS, install the system dependencies instead with:
+
+```bash
+sudo pacman -S python-gobject gtk4 python-pipx xorg-xwayland libx11 gnome-terminal xdg-desktop-portal-gnome
+```
+
+Then clone the repository and run `./install.sh` as above. Enable an AppIndicator / StatusNotifierItem GNOME Shell extension for the tray icon. The global shortcut requires a GNOME session; window placement requires XWayland and `DISPLAY` under Wayland.
 
 `install.sh` installs the app with `pipx` (using system site-packages for PyGObject), adds **LMS Hermes Bridge** to Ubuntu's Applications menu with the brain icon, applies the login autostart setting and registers the default hotkey as a GNOME custom shortcut. Login autostart can be changed later in right-click → **Settings…** → **General**.
 

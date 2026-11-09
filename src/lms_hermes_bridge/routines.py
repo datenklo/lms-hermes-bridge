@@ -5,6 +5,7 @@ Pure parsing plus injectable I/O (`fetch`, `probe`, `opener`, `launcher`) so eve
 import json
 import re
 import shlex
+import shutil
 import subprocess
 import urllib.parse
 import urllib.request
@@ -555,6 +556,9 @@ def run_custom(row: dict, prompt: str, match: re.Match, lang: str, launcher=None
                 for a in (fill(a, prompt, text) for a in shlex.split(value))]
         if not argv:
             return Result("custom", lang, m["empty"], label)
+        if row.get("id") == "builtin:terminal" and argv == ["x-terminal-emulator"]:
+            argv = [next((name for name in ("x-terminal-emulator", "gnome-terminal", "kgx")
+                          if shutil.which(name)), "x-terminal-emulator")]
         spawn(argv)
         return Result("custom", lang, m["started"].format(cmd=shlex.join(argv)), label)
     except ValueError:
