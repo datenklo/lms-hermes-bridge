@@ -93,6 +93,24 @@ def register(accelerator: str) -> bool:
         return False
 
 
+def unregister() -> bool:
+    try:
+        if not Gio.SettingsSchemaSource.get_default().lookup(BASE, True):
+            return True
+        media = Gio.Settings.new(BASE)
+        paths = media.get_strv("custom-keybindings")
+        if PATH in paths:
+            if not media.set_strv("custom-keybindings", [path for path in paths if path != PATH]):
+                return False
+            kb = Gio.Settings.new_with_path(KB_SCHEMA, PATH)
+            for key in ("name", "command", "binding"):
+                kb.reset(key)
+            Gio.Settings.sync()
+        return True
+    except Exception:
+        return False
+
+
 def refresh_command() -> None:
     """Repairs a registered shortcut whose command no longer matches how the app is launched."""
     try:

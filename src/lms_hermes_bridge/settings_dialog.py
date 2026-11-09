@@ -1,12 +1,13 @@
 import copy
+import threading
 import uuid
 
 import gi
 
 gi.require_version("Gtk", "4.0")
-from gi.repository import Gtk  # noqa: E402
+from gi.repository import GLib, Gtk  # noqa: E402
 
-from . import autostart, config as cfgmod, hotkey  # noqa: E402
+from . import autostart, config as cfgmod, hotkey, uninstaller  # noqa: E402
 from .i18n import STRINGS, current, t  # noqa: E402
 
 KINDS = ["openai", "anthropic"]
@@ -36,12 +37,13 @@ def _entry(text: str, secret: bool = False) -> Gtk.Entry:
 
 
 class SettingsWindow(Gtk.Window):
-    def __init__(self, parent, cfg: dict, on_save):
+    def __init__(self, parent, cfg: dict, on_save, on_uninstall=lambda: None):
         super().__init__(title=t("settings").rstrip("…"), transient_for=parent, modal=True)
         self.set_default_size(980, 620)
         self.add_css_class("settings")
         self.cfg = cfg
         self.on_save = on_save
+        self.on_uninstall = on_uninstall
         self.kw_lang = current() if current() in STRINGS else "en"
         self.langs = ["auto"] + list(STRINGS)
         self.routes = ["auto", "local", "hermes"]
@@ -59,7 +61,11 @@ class SettingsWindow(Gtk.Window):
         nb.append_page(self._providers_tab(), Gtk.Label(label=t("tab_providers")))
         box.append(nb)
 
-        bar = Gtk.Box(spacing=8, halign=Gtk.Align.END, margin_top=10, margin_bottom=14, margin_end=20)
+        bar = Gtk.Box(spacing=8, margin_top=10, margin_bottom=14, margin_start=20, margin_end=20)
+        uninstall = Gtk.Button(label=t("uninstall"), css_classes=["destructive-action"])
+        uninstall.connect("clicked", self._confirm_uninstall)
+        bar.append(uninstall)
+        bar.append(Gtk.Box(hexpand=True))
         cancel = Gtk.Button(label=t("cancel"))
         cancel.connect("clicked", lambda *_: self.close())
         save = Gtk.Button(label=t("save"), css_classes=["suggested-action"])
@@ -68,6 +74,39 @@ class SettingsWindow(Gtk.Window):
         bar.append(save)
         box.append(bar)
         self.set_child(box)
+
+    def _confirm_uninstall(self, *_):
+        dialog = Gtk.AlertDialog(message=t("uninstall_confirm_title"), detail=t("uninstall_confirm_body"),
+                                 buttons=[t("cancel"), t("uninstall")], default_button=0, cancel_button=0)
+        dialog.choose(self, None, self._uninstall_choice)
+
+    def _uninstall_choice(self, dialog, result):
+        try:
+            if dialog.choose_finish(result) != 1:
+                return
+        except GLib.Error:
+            return
+        self.set_sensitive(False)
+        self.set_deletable(False)
+
+        def work():
+            try:
+                uninstaller.uninstall()
+            except Exception as error:
+                GLib.idle_add(self._uninstall_done, str(error))
+            else:
+                GLib.idle_add(self._uninstall_done, None)
+
+        threading.Thread(target=work, daemon=True).start()
+
+    def _uninstall_done(self, error):
+        if error is None:
+            self.on_uninstall()
+        else:
+            self.set_sensitive(True)
+            self.set_deletable(True)
+            Gtk.AlertDialog(message=t("uninstall_failed", error=error), buttons=[t("close")]).show(self)
+        return False
 
     # -- tabs ---------------------------------------------------------
     def _general(self):
@@ -238,8 +277,8 @@ class SettingsWindow(Gtk.Window):
         self._render_routines(rows)
 
     def _fill_routing(self):
-        labels = [t("route_auto"), t("route_local"), t("route_hermes")]
-        self.routes = ["auto", "local", "hermes"]
+        labels = [t("route_auto"), t("route_priority"), t("route_local"), t("route_hermes")]
+        self.routes = ["auto", "priority", "local", "hermes"]
         for p in self.cfg["providers"]:
             self.routes.append("provider:" + p["id"])
             labels.append(p["name"])
@@ -324,6 +363,7 @@ class SettingsWindow(Gtk.Window):
         g = _grid()
         w = {
             "id": p["id"],
+            "scope": p.get("scope"),
             "name": _row(g, t("name"), _entry(p["name"])),
             "kind": _row(g, t("kind"), Gtk.DropDown.new_from_strings(["OpenAI-compatible", "Anthropic"])),
             "endpoint": _row(g, t("endpoint"), _entry(p["endpoint"])),
@@ -413,11 +453,12 @@ class SettingsWindow(Gtk.Window):
                 "api_key": w["api_key"].get_text(),
                 "model": w["model"].get_text().strip(),
                 "enabled": w["enabled"].get_active(),
+                **({"scope": w["scope"]} if w["scope"] else {}),
             }
             for w in self.prov_rows
         ]
         sel = self.routes[self.w_routing.get_selected()] if self.w_routing.get_selected() < len(self.routes) else "auto"
-        valid = {"auto", "local", "hermes"} | {"provider:" + p["id"] for p in c["providers"]}
+        valid = {"auto", "priority", "local", "hermes"} | {"provider:" + p["id"] for p in c["providers"]}
         c["routing"] = sel if sel in valid else "auto"
         cfgmod.save(c)
         autostart.set_enabled(c["start_on_login"])

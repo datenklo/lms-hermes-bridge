@@ -18,3 +18,20 @@ def test_installed_executable_is_preferred(monkeypatch):
 def test_accelerator_validation():
     assert hotkey.is_valid("<Control><Alt>space") and hotkey.is_valid("<Super>F1")
     assert not hotkey.is_valid("Ctrl+Alt+X") and not hotkey.is_valid("")
+
+
+def test_unregister_removes_only_own_shortcut(monkeypatch):
+    from types import SimpleNamespace
+
+    paths = ["/other/", hotkey.PATH]
+    removed_keys = []
+    media = SimpleNamespace(get_strv=lambda _key: paths,
+                            set_strv=lambda _key, value: paths.__setitem__(slice(None), value) or True)
+    binding = SimpleNamespace(reset=removed_keys.append)
+    settings = SimpleNamespace(new=lambda _schema: media, new_with_path=lambda _schema, _path: binding,
+                               sync=lambda: None)
+    schemas = SimpleNamespace(get_default=lambda: SimpleNamespace(lookup=lambda *_: True))
+    monkeypatch.setattr(hotkey, "Gio", SimpleNamespace(Settings=settings, SettingsSchemaSource=schemas))
+    assert hotkey.unregister()
+    assert paths == ["/other/"]
+    assert removed_keys == ["name", "command", "binding"]

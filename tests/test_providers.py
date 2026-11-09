@@ -1,3 +1,36 @@
+def test_stream_fallback_only_before_output():
+    from lms_hermes_bridge import providers
+
+    calls = []
+
+    def open_stream(route):
+        calls.append(route)
+        if route == "local":
+            raise providers.ChatError("offline")
+        yield route
+
+    assert list(providers.stream_with_fallback(["local", "lan", "wan"], open_stream)) == ["lan"]
+    assert calls == ["local", "lan"]
+
+    def broken_connection(route):
+        if route == "local":
+            raise ConnectionResetError("connection reset")
+        yield route
+
+    assert list(providers.stream_with_fallback(["local", "lan"], broken_connection)) == ["lan"]
+
+    def partial_stream(route):
+        calls.append(route)
+        yield "partial"
+        raise providers.ChatError("interrupted")
+
+    import pytest
+    calls.clear()
+    with pytest.raises(providers.ChatError, match="interrupted"):
+        list(providers.stream_with_fallback(["local", "lan"], partial_stream))
+    assert calls == ["local"]
+
+
 from lms_hermes_bridge.providers import _anthropic_messages
 
 

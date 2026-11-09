@@ -24,7 +24,7 @@ A hotkey-driven launcher overlay for GNOME on Ubuntu and Arch-based systems that
 - **Agent integration:** route action-oriented tasks ("open…", "install…", "create a file…") to the selected Hermes API server or Pi installation.
 - **External models** (Claude, ChatGPT, Copilot/GitHub Models, custom OpenAI-compatible endpoints), usable as forced route or as fallback when the selected model backend is unavailable.
 - **Local-only switch** that blocks requests to configured remote model and agent endpoints.
-- **Install on start:** if LM Studio (headless daemon + `lms` CLI) or Hermes is not found on this machine, the app asks whether to install it with the vendor's official install script. The exact command is shown before anything runs; nothing is installed without confirmation. Can be switched off in the settings.
+- **Graphical setup:** on first start, choose Pi or Hermes, LM Studio, Strata and model/API endpoints. Reopen it from the app or tray menu. Missing selected components can be installed with their official scripts after confirmation.
 - **Right-click settings menu** inside the overlay for all endpoints, keys and options.
 - **Multilingual UI:** English and German, selectable in settings or automatically detected from the system locale. Unsupported locales fall back to English.
 
@@ -38,7 +38,11 @@ A hotkey-driven launcher overlay for GNOME on Ubuntu and Arch-based systems that
 | 4. Parameters | Context length (capped by the model maximum), temperature and max tokens per tier |
 | 5. Load | LM Studio can load models via `lms`; Strata manages model loading itself |
 
-You can override automatic routing in settings: always the selected local backend, always the selected agent, or always a specific external provider.
+The setup selects **Local, then LAN, then Internet** for ordinary model requests. It tries enabled endpoints in that order and switches to the next only when an attempt fails before producing output. A LAN provider selected in setup is treated as LAN even when it uses a hostname; other hostnames are treated as Internet. Local-only mode still blocks LAN and Internet requests. Image requests only use configured model backends with known vision support.
+
+For agent tasks with a configured Pi endpoint, priority routing also tries available model endpoints in that order using Pi for each attempt. It does not retry after text output, tool activity, an invalid event or an ambiguous process failure. These attempts disable Pi extensions and MCP. Hermes manages its own models and internal fallback; the bridge cannot enforce this order or the tool-activity boundary inside Hermes.
+
+You can change routing in settings: automatic, local/LAN/Internet priority, always the selected model backend, always the selected agent, or always a specific external provider.
 
 **Agent keywords:** a request goes to the selected agent when it contains a word or phrase from the built-in list of user actions. Both English and German lists are used for matching; the settings tab shows the current UI language. Edit them under right-click → **Settings…** → **Agent keywords** (one entry per line; a trailing `*` also matches longer forms).
 
@@ -52,21 +56,29 @@ You can override automatic routing in settings: always the selected local backen
 ## Install
 
 ```bash
-sudo apt install python3-gi gir1.2-gtk-4.0 pipx
 git clone https://github.com/datenklo/lms-hermes-bridge.git
 cd lms-hermes-bridge
 ./install.sh
 ```
 
-On Arch Linux and CachyOS, install the system dependencies instead with:
+On Ubuntu/Debian and Arch/CachyOS, the terminal installer checks system packages, displays the missing packages and the `sudo apt-get` or `sudo pacman` command, and asks for confirmation before installing them. It stops if confirmation is declined or installation fails. This terminal step runs before graphical setup so GTK and PyGObject can be installed first. Git and a terminal are required to start the installation.
 
-```bash
-sudo pacman -S python-gobject gtk4 python-pipx xorg-xwayland libx11 gnome-terminal xdg-desktop-portal-gnome
-```
-
-Then clone the repository and run `./install.sh` as above. Enable an AppIndicator / StatusNotifierItem GNOME Shell extension for the tray icon. The global shortcut requires a GNOME session; window placement requires XWayland and `DISPLAY` under Wayland.
+Enable the tray extension with `gnome-extensions enable appindicatorsupport@rgcjonas.gmail.com` (log out and back in first if GNOME does not find the newly installed extension). Another StatusNotifierItem host can be used instead. The global shortcut requires a GNOME session; window placement requires XWayland and `DISPLAY` under Wayland.
 
 `install.sh` installs the app with `pipx` (using system site-packages for PyGObject), adds **LMS Hermes Bridge** to the Applications menu with the brain icon, applies the login autostart setting and registers the default hotkey as a GNOME custom shortcut. Login autostart can be changed later in right-click → **Settings…** → **General**.
+
+To uninstall, choose **Uninstall…** in **Settings…** and confirm. The app removes its pipx installation, shortcut, autostart and application menu entry, then quits. Configuration including API keys, system packages, other components and the Git checkout remain.
+
+After updating or reinstalling the bridge, a terminal uninstaller is also available:
+
+```bash
+lms-hermes-bridge-uninstall
+lms-hermes-bridge-uninstall --delete-all
+```
+
+Close the bridge and any components to be removed first. The first command preserves configuration. `--delete-all` deletes the displayed bridge configuration and locally stored keys after confirmation, and separately offers removal of recognized LM Studio/llmster, Pi and Strata paths, including their data. It previews the recognized Hermes installation and invokes its interactive uninstaller after confirmation; choose full removal there. These components may have been installed independently of the bridge. Declined components and shared system packages are kept.
+
+Only recognized paths and installation methods are covered. Custom locations, symlinks, package-managed apps, external models, backups, shell PATH entries and other copies may require manual cleanup; the LM Studio location pointer is kept for inspection. API keys are not revoked at their providers, and file removal is not secure erasure. The Git checkout remains.
 
 Run without installing: `PYTHONPATH=src python3 -m lms_hermes_bridge`
 
@@ -74,9 +86,9 @@ Run without installing: `PYTHONPATH=src python3 -m lms_hermes_bridge`
 
 Right-click the overlay and choose **Settings…**:
 
-To use [Strata](https://github.com/Niko1221/Strata) instead of LM Studio, start a model with Strata first (for example `strata launch`), select **Strata** as the local model backend under **General**, and configure its server URL and optional API key under **Strata**. Enable image support there only when the served model supports it. Strata manages model loading itself; the LM Studio model-loading settings do not apply.
+To use [Strata](https://github.com/Niko1221/Strata) instead of LM Studio, select **Strata** as the local model backend under **General**, and configure its server URL and optional API key under **Strata**. On the next start, the app offers its official installer for a missing local Strata installation only when a GPU with more than 11 GiB of dedicated VRAM is detected. If memory cannot be determined, no installation is offered. Start a model with Strata (for example `strata launch`). Enable image support only when the served model supports it. Remote Strata servers are configured separately and do not require a local GPU.
 
-To use [Pi](https://pi.dev/) instead of Hermes, install Pi, select it as the agent harness under **General**, and enable it under **Pi**. Set its executable and working directory there; model and provider overrides are optional and otherwise Pi uses its own configuration. To connect Pi to Strata, consult `strata connect pi` and configure Pi separately. Pi may execute tools and modify files in its working directory. Pi is unavailable while local-only mode is enabled because the bridge cannot verify Pi's provider or tool network access.
+To use [Pi](https://pi.dev/) instead of Hermes, enter an OpenAI-compatible model API base URL (typically ending in `/v1`), model and optional key in **Setup…**. Without LM Studio, the Pi URL must be remote. The bridge starts Pi with an isolated temporary agent configuration for that endpoint; existing Pi settings, extensions and credentials are not loaded in this mode. Pi may execute tools and modify files in its working directory. Pi is unavailable while local-only mode is enabled because the bridge cannot verify Pi's provider or tool network access.
 
 Local-only mode blocks configured remote API endpoints, but cannot restrict network access by agent tools, user-defined commands, the backend itself, or other application features such as update checks.
 

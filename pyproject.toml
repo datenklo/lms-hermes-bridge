@@ -17,6 +17,7 @@ dev = ["pytest"]
 
 [project.scripts]
 lms-hermes-bridge = "lms_hermes_bridge.app:main"
+lms-hermes-bridge-uninstall = "lms_hermes_bridge.uninstaller:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

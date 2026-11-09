@@ -50,6 +50,7 @@ flowchart LR
 | `routines.py` | Built-in answers before any routing: weather (date phrase parser, location extraction, Open-Meteo geocoding + forecast, WMO code texts) and help (strong/weak triggers, topic matching, live status probe). `fetch`/`probe` are injectable for tests |
 | `installer.py` | Detects a missing local LM Studio / Hermes (remote endpoints are ignored) and runs the official install script (`curl -fsSL <url> \| bash`) in a thread, streaming output; after LM Studio it runs `lms server start` |
 | `install_window.py` | Modal progress window with live installer log |
+| `uninstaller.py` | Confirmed GUI and terminal uninstall; optional cleanup of bridge configuration and individually selected component data |
 | `i18n.py` | `STRINGS` dictionaries per language, `t(key)`, locale detection |
 
 ## Request flow
@@ -140,6 +141,22 @@ The legacy `routing: "hermes"` value selects the configured agent, preserving ex
 The General settings switch creates or removes `~/.config/autostart/lms-hermes-bridge.desktop` immediately on save. The installer applies the persisted `start_on_login` value.
 
 Automatic update checks use `updater.updates_available()` at startup and the configured interval. This only runs `git fetch` and `git rev-list`; when `origin/main` is ahead, app and tray menus refresh with an update label/icon. The destructive part (`git pull --ff-only` plus pipx reinstall) runs only after the user confirms.
+
+## Uninstallation
+
+The settings action and `lms-hermes-bridge-uninstall` remove the pipx package, autostart entry, desktop entry, icon and GNOME shortcut after confirmation. They preserve configuration and other components. The terminal entry point is installed with the bridge; see the [README](../README.md) for commands and prerequisites.
+
+With `--delete-all`, the user must first close the bridge and components being removed. The command displays the bridge configuration directory (`$XDG_CONFIG_HOME/lms-hermes-bridge`, default `~/.config/lms-hermes-bridge`) and asks for confirmation. It then displays existing recognized paths and asks separately for each component:
+
+| Component | Paths considered |
+|-----------|------------------|
+| LM Studio / llmster | `~/.lmstudio`, `~/.cache/lm-studio` |
+| Pi | `~/.pi/agent` |
+| Strata | `$STRATA_DATA_DIR`, or `$XDG_DATA_HOME/strata` (default `~/.local/share/strata`); `~/.strata`; and the Strata executable link if its target is inside the recognized installation |
+
+Paths must pass the uninstaller's safety checks; unsafe paths and unrecognized installations require manual review. For a recognized Hermes wrapper and default home, the command runs `hermes uninstall --full --dry-run` and, after separate approval, launches the interactive Hermes uninstaller. Its own prompts determine whether full removal is actually performed; inspect its output and any remaining profiles or files.
+
+After the choices, approved component paths and bridge configuration are removed before the bridge uninstalls itself. An interrupted confirmation stops the operation; later failures can leave partial changes and are reported. The command does not stop running processes, uninstall shared system packages, revoke provider credentials or securely erase files. Custom locations, symlinks, external models, backups, shell PATH entries, other package-managed installations and the Git checkout can remain. The LM Studio home pointer is retained for manual inspection.
 
 ## Adding things
 

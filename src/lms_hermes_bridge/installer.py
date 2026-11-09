@@ -1,4 +1,4 @@
-"""Detects missing LM Studio / Hermes installs and runs their official install scripts."""
+"""Detects missing local components and runs their official install scripts."""
 import re
 import shutil
 import subprocess
@@ -6,13 +6,15 @@ import threading
 from pathlib import Path
 from urllib.parse import urlparse
 
-from . import lmstudio
+from . import lmstudio, strata
 
-NAMES = {"lmstudio": "LM Studio", "hermes": "Hermes"}
-# Official installers: LM Studio's headless daemon + `lms` CLI, and Hermes Agent.
+NAMES = {"lmstudio": "LM Studio", "hermes": "Hermes", "strata": "Strata", "pi": "Pi"}
+# Official installers for the supported local components.
 SCRIPT_URLS = {
     "lmstudio": "https://lmstudio.ai/install.sh",
     "hermes": "https://hermes-agent.nousresearch.com/install.sh",
+    "strata": "https://github.com/Niko1221/Strata/releases/latest/download/install.sh",
+    "pi": "https://pi.dev/install.sh",
 }
 ANSI = re.compile(r"\x1b\[[0-9;?]*[A-Za-z]")
 
@@ -37,14 +39,52 @@ def hermes_missing(cfg: dict) -> bool:
     return not (shutil.which("hermes") or (home / ".local/bin/hermes").exists() or (home / ".hermes").exists())
 
 
+def gpu_has_strata_vram() -> bool:
+    threshold = 11 * 1024 ** 3
+    for path in Path("/sys/class/drm").glob("card[0-9]*/device/mem_info_vram_total"):
+        try:
+            if int(path.read_text().strip()) > threshold:
+                return True
+        except (OSError, ValueError):
+            continue
+    try:
+        result = subprocess.run(
+            ["nvidia-smi", "--query-gpu=memory.total", "--format=csv,noheader,nounits"],
+            capture_output=True, text=True, timeout=5, check=True,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return False
+    for value in result.stdout.splitlines():
+        try:
+            if int(value.strip()) * 1024 ** 2 > threshold:
+                return True
+        except ValueError:
+            continue
+    return False
+
+
+def strata_missing(cfg: dict) -> bool:
+    url = cfg["strata"]["url"]
+    if not _is_local(url):
+        return False
+    if shutil.which("strata") or (Path.home() / ".local/bin/strata").exists():
+        return False
+    return gpu_has_strata_vram() and strata.list_models(cfg["strata"]) is None
+
+
 def missing(cfg: dict) -> list[str]:
     if not cfg.get("check_components", True):
         return []
     found = []
-    if cfg.get("local_backend", "lmstudio") == "lmstudio" and lmstudio_missing(cfg):
+    if cfg["lmstudio"].get("enabled", cfg.get("local_backend", "lmstudio") == "lmstudio") and lmstudio_missing(cfg):
         found.append("lmstudio")
+    if cfg["strata"].get("enabled", cfg.get("local_backend") == "strata") and strata_missing(cfg):
+        found.append("strata")
     if cfg.get("agent_backend", "hermes") == "hermes" and hermes_missing(cfg):
         found.append("hermes")
+    if cfg.get("agent_backend") == "pi" and not (shutil.which(cfg["pi"].get("executable") or "pi")
+                                                  or (Path.home() / ".local/bin/pi").exists()):
+        found.append("pi")
     return found
 
 

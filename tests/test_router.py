@@ -19,6 +19,53 @@ def cfg(**over):
     return c
 
 
+def test_endpoint_scope_distinguishes_loopback_lan_and_wan():
+    assert router.endpoint_scope("http://localhost:1234") == "local"
+    assert router.endpoint_scope("http://127.0.0.1:1234") == "local"
+    assert router.endpoint_scope("http://[::1]:1234") == "local"
+    assert router.endpoint_scope("http://192.168.1.5:1234") == "lan"
+    assert router.endpoint_scope("http://[fd00::1]:1234") == "lan"
+    assert router.endpoint_scope("https://api.openai.com/v1") == "wan"
+    assert router.endpoint_scope("https://unknown.example/v1") == "wan"
+    assert router.endpoint_scope("http://[invalid") == "wan"
+
+
+def test_priority_routes_orders_backends_and_respects_local_only():
+    c = cfg(providers=[
+        {"id": "cloud", "endpoint": "https://api.openai.com/v1", "model": "cloud"},
+        {"id": "lan", "endpoint": "http://192.168.1.8/v1", "model": "lan"},
+    ])
+    c["strata"].update(enabled=True, url="http://192.168.1.2:8080")
+    c["lmstudio"]["enabled"] = True
+    models = {"lmstudio": [ModelInfo("local", loaded=True)], "strata": [ModelInfo("network", loaded=True)]}
+    routes = router.priority_routes("hello", c, models, GB)
+    assert [(route.backend, route.model) for route in routes] == [
+        ("lmstudio", "local"), ("strata", "network"), ("provider", "lan"), ("provider", "cloud")]
+    c["local_only"] = True
+    assert [route.model for route in router.priority_routes("hello", c, models, GB)] == ["local"]
+
+
+def test_priority_routes_do_not_send_images_to_unverified_providers():
+    c = cfg(providers=[{"id": "cloud", "endpoint": "https://example.com", "model": "cloud"}])
+    assert router.priority_routes("describe", c, {}, GB, needs_image=True) == []
+
+
+def test_explicit_lan_provider_is_ordered_before_cloud_hostnames():
+    c = cfg(providers=[{"id": "cloud", "endpoint": "https://example.com", "model": "cloud"},
+                       {"id": "lan", "endpoint": "http://models.home:8080", "model": "lan", "scope": "lan"}])
+    assert [route.model for route in router.priority_routes("hello", c, {}, GB)] == ["lan", "cloud"]
+    c["local_only"] = True
+    assert router.priority_routes("hello", c, {}, GB) == []
+
+
+def test_remote_lmstudio_only_uses_already_loaded_models():
+    c = cfg()
+    c["lmstudio"]["url"] = "http://192.168.1.3:1234"
+    models = {"lmstudio": [ModelInfo("not-loaded", loaded=False), ModelInfo("ready", loaded=True)]}
+    routes = router.priority_routes("hello", c, models, GB)
+    assert len(routes) == 1 and routes[0].model == "ready" and not routes[0].needs_load
+
+
 def test_parse_params():
     assert parse_params_b("qwen2.5-7b-instruct") == 7
     assert parse_params_b("gemma-4-12B-coder") == 12
