@@ -119,6 +119,16 @@ def test_agent_goes_to_hermes():
     assert router.decide("open the browser", c, MODELS, 32 * GB).backend == "hermes"
 
 
+def test_pi_is_the_selected_agent_and_blocked_in_local_only_mode():
+    c = cfg(agent_backend="pi")
+    c["pi"]["enabled"] = True
+    assert router.decide("open a file", c, MODELS, 32 * GB).backend == "pi"
+    c["routing"] = "hermes"
+    assert router.decide("hello", c, MODELS, 32 * GB).backend == "pi"
+    c["local_only"] = True
+    assert router.agent_route(c, "forced") is None
+
+
 def test_default_keywords_cover_common_actions():
     for p in ["Öffne den Browser mit wetter.de", "open firefox", "Please create a file notes.txt",
               "Erstelle eine Datei test.txt", "Lade die Datei herunter", "remind me at 5", "Lösche alte Logs"]:

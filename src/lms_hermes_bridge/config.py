@@ -118,6 +118,8 @@ DEFAULTS = {
     "routines": copy.deepcopy(DEFAULT_ROUTINES),  # table in the settings: keywords -> action
     "routing": "auto",  # auto | local | hermes | provider:<id>
     "local_backend": "lmstudio",
+    "agent_backend": "hermes",
+    "pi": {"enabled": False, "executable": "pi", "model": "", "provider": "", "working_directory": "~"},
     "strata": {
         "url": "http://127.0.0.1:8080",
         "api_key": "",

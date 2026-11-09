@@ -8,7 +8,7 @@ gi.require_version("Gtk", "4.0")
 from gi.repository import Gdk, Gio, GLib, Gtk  # noqa: E402
 
 from . import APP_ID, __version__, config as cfgmod, hotkey, installer, lmstudio, providers, router, routines, services  # noqa: E402
-from . import desktop_context, strata  # noqa: E402
+from . import desktop_context, pi_harness, strata  # noqa: E402
 from . import updater  # noqa: E402
 from .i18n import current, set_language, t  # noqa: E402
 from .install_window import InstallWindow  # noqa: E402
@@ -368,13 +368,14 @@ class BridgeWindow(Gtk.ApplicationWindow):
     def _resolve_route(self, prompt: str, force: str | None = None, needs_image: bool = False):
         cfg = self.cfg
         if force == "hermes":
-            if not cfg["hermes"]["enabled"] or (cfg["local_only"] and not installer._is_local(cfg["hermes"]["endpoint"])):
-                return None
-            self._ensure_hermes()
-            return router.Route("hermes", "agent", "routine", cfg["hermes"]["model"])
+            route = router.agent_route(cfg, "routine")
+            if route and route.backend == "hermes":
+                self._ensure_hermes()
+            return route
         models = self._local_models()
         route = router.decide(prompt, cfg, models, lmstudio.mem_total_bytes(), needs_image=needs_image)
-        if cfg.get("local_backend", "lmstudio") == "lmstudio" and models is None and (route is None or route.reason == "LM Studio unavailable"):
+        if cfg.get("local_backend", "lmstudio") == "lmstudio" and models is None and (
+            route is None or route.reason in ("LM Studio unavailable", "Local backend unavailable")):
             self._ui(self._status, t("starting", name="LM Studio"))
             if services.ensure(cfg, "lmstudio"):
                 models = self._local_models()
@@ -432,7 +433,7 @@ class BridgeWindow(Gtk.ApplicationWindow):
                                                 ("reasoning", route.params.get("supports_thinking")),
                                                 ("tool_use", route.params.get("supports_tools"))) if v)),
                          self.vision_models)
-            backend = {"lmstudio": "LM Studio", "strata": "Strata", "hermes": "Hermes"}.get(route.backend, "API")
+            backend = {"lmstudio": "LM Studio", "strata": "Strata", "hermes": "Hermes", "pi": "Pi"}.get(route.backend, "API")
             self._ui(self._status, t("route_label", backend=backend, model=route.model,
                                      tier=t("tier_" + route.tier), reason=route.reason))
             user_content = full_prompt
@@ -445,14 +446,14 @@ class BridgeWindow(Gtk.ApplicationWindow):
             if system_prompt.strip():
                 messages.append({"role": "system", "content": system_prompt})
             messages.append({"role": "user", "content": user_content})
-            for chunk in self._stream(route, messages):
+            for chunk in self._stream(route, messages, cancel):
                 if cancel.is_set():
                     return
                 self._ui(self._append, chunk, cancel)
         except providers.ChatError as e:
             self._ui(self._append, f"\n[{t('err_generic')}] {e}", cancel)
 
-    def _stream(self, route: router.Route, messages: list):
+    def _stream(self, route: router.Route, messages: list, cancel: threading.Event):
         cfg = self.cfg
         if route.backend == "lmstudio":
             endpoint = cfg["lmstudio"]["url"].rstrip("/") + "/v1/chat/completions"
@@ -464,6 +465,10 @@ class BridgeWindow(Gtk.ApplicationWindow):
         if route.backend == "hermes":
             h = cfg["hermes"]
             return providers.stream("openai", h["endpoint"], h["api_key"], h["model"], messages, {})
+        if route.backend == "pi":
+            system = next((message["content"] for message in messages if message["role"] == "system"), "")
+            prompt = next(message["content"] for message in messages if message["role"] == "user")
+            return pi_harness.stream(cfg["pi"], prompt, system, cancel)
         p = next(p for p in cfg["providers"] if p["id"] == route.provider_id)
         return providers.stream(p["kind"], p["endpoint"], p["api_key"], p["model"], messages,
                                 router.TIER_PARAMS[route.tier])
@@ -576,7 +581,7 @@ class BridgeApp(Gtk.Application):
         if not self.cfg["autostart_backends"]:
             return
         names = (["lmstudio"] if self.cfg.get("local_backend", "lmstudio") == "lmstudio" else []) + (
-            ["hermes"] if self.cfg["hermes"]["enabled"] else [])
+            ["hermes"] if self.cfg.get("agent_backend", "hermes") == "hermes" and self.cfg["hermes"]["enabled"] else [])
         for name in names:
             threading.Thread(target=services.ensure, args=(self.cfg, name), daemon=True).start()
 

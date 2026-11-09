@@ -43,7 +43,7 @@ def missing(cfg: dict) -> list[str]:
     found = []
     if cfg.get("local_backend", "lmstudio") == "lmstudio" and lmstudio_missing(cfg):
         found.append("lmstudio")
-    if hermes_missing(cfg):
+    if cfg.get("agent_backend", "hermes") == "hermes" and hermes_missing(cfg):
         found.append("hermes")
     return found
 

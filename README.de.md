@@ -2,7 +2,7 @@
 
 🇬🇧 [English](README.md) | 🇩🇪 Deutsch
 
-Ein per Tastenkombination aufrufbares Overlay für Ubuntu (GNOME), das den Desktop, [LM Studio](https://lmstudio.ai), [Hermes](https://github.com/NousResearch/hermes-agent) und optionale externe LLM-APIs (Claude, ChatGPT, GitHub Copilot/Models, beliebige OpenAI-kompatible Dienste) verbindet. Ähnlich wie Windows Copilot als Suchfenster: Taste drücken, Frage oder Aufgabe eintippen, Antwort erhalten.
+Ein per Tastenkombination aufrufbares Overlay für GNOME unter Ubuntu und Arch-basierten Systemen, das den Desktop, [LM Studio](https://lmstudio.ai) oder [Strata](https://stratallm.org/), [Hermes](https://github.com/NousResearch/hermes-agent) oder [Pi](https://pi.dev/) und optionale externe LLM-APIs verbindet. Taste drücken, Frage oder Aufgabe eintippen, Antwort erhalten.
 
 ## Funktionen
 
@@ -33,21 +33,21 @@ Ein per Tastenkombination aufrufbares Overlay für Ubuntu (GNOME), das den Deskt
 | Schritt | Logik |
 |---------|-------|
 | 1. Einordnen | Heuristik aus Stichwörtern und Länge (kein Modellaufruf, keine Verzögerung) |
-| 2. Backend | `agent`-Aufgaben gehen an Hermes (falls aktiv), alles andere an LM Studio; Fallbacks: Hermes, danach externe Anbieter (außer im Nur-lokal-Modus) |
+| 2. Backend | `agent`-Aufgaben gehen an den ausgewählten aktivierten Agenten (Hermes oder Pi), alles andere an das ausgewählte lokale Backend (LM Studio oder Strata); Fallbacks: ausgewählter Agent, danach externe Anbieter (außer im Nur-lokal-Modus) |
 | 3. Modell | `fast`: kleinstes Modell ≤ 9B, geladenes bevorzugt. `code`: ein Coder-Modell, falls vorhanden. `deep`: größtes Modell, das in ca. 75 % des RAM passt. `balanced`: ca. 8B-Klasse. Optionale Überschreibung pro Stufe in den Einstellungen |
 | 4. Parameter | Kontextlänge (begrenzt durch das Modellmaximum), Temperatur und maximale Tokens pro Stufe |
-| 5. Laden | `lms unload --all` (optional), dann `lms load <Modell> --context-length N --gpu max` |
+| 5. Laden | LM Studio kann Modelle über `lms` laden; Strata verwaltet das Laden selbst |
 
-In den Einstellungen lässt sich das Routing überschreiben: immer LM Studio, immer Hermes oder immer ein bestimmter externer Anbieter.
+In den Einstellungen lässt sich das Routing überschreiben: immer das ausgewählte lokale Backend, immer der ausgewählte Agent oder immer ein bestimmter externer Anbieter.
 
-**Hermes-Stichwörter:** Eine Anfrage geht an Hermes, wenn sie ein Wort oder eine Wortgruppe aus einer eingebauten Liste typischer Benutzeraktionen enthält (öffne, installiere, lösche, erstelle Datei, sende E-Mail, erinnere mich, … sowie die englischen Entsprechungen). Es gibt je eine Liste pro Sprache (Englisch, Deutsch); beim Abgleich werden alle genutzt, die Einstellungen zeigen aber nur die Liste der aktuellen Oberflächensprache. Die Listen sind per Rechtsklick → **Einstellungen…** → **Hermes-Stichwörter** editierbar (ein Eintrag pro Zeile, nur ganze Wörter; ein `*` am Ende erfasst auch längere Formen, z. B. `installier*`; Artikel zwischen den Wörtern werden ignoriert, `erstelle datei` trifft also „erstelle eine Datei“).
+**Agenten-Stichwörter:** Eine Anfrage geht an den ausgewählten Agenten, wenn sie ein Wort oder eine Wortgruppe aus der eingebauten Liste typischer Benutzeraktionen enthält. Beim Abgleich werden die deutsche und englische Liste genutzt; die Einstellungen zeigen die aktuelle Oberflächensprache. Die Listen sind per Rechtsklick → **Einstellungen…** → **Agenten-Stichwörter** editierbar (ein Eintrag pro Zeile; ein `*` am Ende erfasst auch längere Formen).
 
 ## Voraussetzungen
 
 - Ubuntu 24.04+ oder Arch Linux / Arch-basierte Distributionen wie CachyOS mit GNOME (X11 oder Wayland; unter Wayland läuft die App über XWayland, damit das Fenster oben platziert werden kann)
 - `python3-gi` und `gir1.2-gtk-4.0`
-- LM Studio mit aktiviertem lokalem Server (Standard `http://localhost:1234`) und der `lms`-CLI (`~/.lmstudio/bin/lms`)
-- Optional: ein laufender Hermes-Agent-API-Server
+- LM Studio mit lokalem Server und `lms`-CLI oder ein laufender Strata-Server
+- Optional: ein laufender Hermes-Agent-API-Server oder ein installiertes und konfiguriertes Pi
 
 ## Installation
 
@@ -76,6 +76,8 @@ Rechtsklick auf das Overlay oder das Trayicon, dann **Einstellungen…**:
 
 Für [Strata](https://github.com/Niko1221/Strata) statt LM Studio zuerst ein Modell mit Strata starten (zum Beispiel `strata launch`), unter **Allgemein** als lokales Modell-Backend **Strata** wählen und unter **Strata** Server-URL und optionalen API-Schlüssel eintragen. Bildunterstützung dort nur aktivieren, wenn das bereitgestellte Modell Bilder verarbeiten kann. Strata verwaltet das Laden seiner Modelle selbst; die LM-Studio-Ladeeinstellungen gelten dafür nicht.
 
+Für [Pi](https://pi.dev/) statt Hermes Pi installieren, unter **Allgemein** als Agenten-Harness auswählen und unter **Pi** aktivieren. Dort Programm und Arbeitsverzeichnis festlegen; Modell und Anbieter sind optional, andernfalls verwendet Pi seine eigene Konfiguration. Für die Verbindung zu Strata `strata connect pi` verwenden und Pi separat konfigurieren. Pi kann Werkzeuge ausführen und Dateien im Arbeitsverzeichnis verändern. Im Nur-lokal-Modus ist Pi nicht verfügbar, da die Bridge die Netzwerkzugriffe des Pi-Anbieters und seiner Werkzeuge nicht prüfen kann.
+
 Der Nur-lokal-Modus blockiert konfigurierte entfernte API-Endpunkte, kann aber Netzwerkzugriffe von Agentenwerkzeugen, eigenen Befehlen, dem Backend selbst oder anderen App-Funktionen wie der Update-Prüfung nicht einschränken.
 
 | Reiter | Optionen |
@@ -83,9 +85,11 @@ Der Nur-lokal-Modus blockiert konfigurierte entfernte API-Endpunkte, kann aber N
 | Allgemein | Sprache, Nur-lokal-Modus, Routing, globale Tastenkombination (mit Prüfung und Konfliktanzeige), Login-Autostart, Installationsprüfung, automatischer Backend-Start, regelmäßige Update-Prüfung und Intervall |
 | Systemprompt | Deutsche und englische Assistentenanweisungen getrennt bearbeiten oder zurücksetzen |
 | LM Studio | API-URL, automatisches Laden, andere Modelle entladen, Modell-Überschreibung pro Stufe, bevorzugtes Vision-Modell und automatisches VLM-Laden |
+| Strata | API-URL, optionaler API-Schlüssel und Bildunterstützung |
 | Hermes | Aktivieren, Chat-Endpunkt-URL, API-Schlüssel, Modellname |
+| Pi | Aktivieren, Programm, Arbeitsverzeichnis, optionaler Anbieter und Modell |
 | Routinen | Tabelle aller Routinen: Stichwörter, Aktion, Wert; Hauptschalter; Standardort für das Wetter |
-| Hermes-Stichwörter | Wörter/Wortgruppen (je Oberflächensprache), die eine Anfrage an Hermes schicken |
+| Agenten-Stichwörter | Wörter/Wortgruppen (je Oberflächensprache), die eine Anfrage an den ausgewählten Agenten schicken |
 | Externe Modelle | Vorlagen (Claude, ChatGPT, Copilot) oder eigene Endpunkte mit URL, Schlüssel und Modell |
 
 Die Einstellungen liegen in `~/.config/lms-hermes-bridge/config.json` (Dateirechte `0600`; API-Schlüssel stehen dort im Klartext).

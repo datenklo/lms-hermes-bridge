@@ -2,7 +2,7 @@
 
 🇬🇧 English | 🇩🇪 [Deutsch](README.de.md)
 
-A hotkey-driven launcher overlay for Ubuntu (GNOME) that bridges your desktop, [LM Studio](https://lmstudio.ai), [Hermes](https://github.com/NousResearch/hermes-agent) and optional external LLM APIs (Claude, ChatGPT, GitHub Copilot/Models, any OpenAI-compatible service). Think "Windows Copilot" as a search-style popup: press a key, type a question or task, get an answer.
+A hotkey-driven launcher overlay for GNOME on Ubuntu and Arch-based systems that bridges your desktop, [LM Studio](https://lmstudio.ai) or [Strata](https://stratallm.org/), [Hermes](https://github.com/NousResearch/hermes-agent) or [Pi](https://pi.dev/), and optional external LLM APIs. Press a key, type a question or task, and get an answer.
 
 ## Features
 
@@ -33,21 +33,21 @@ A hotkey-driven launcher overlay for Ubuntu (GNOME) that bridges your desktop, [
 | Step | Logic |
 |------|-------|
 | 1. Classify | Keyword and length heuristics (no model call, zero latency) |
-| 2. Backend | `agent` tasks (keyword list, editable) go to Hermes (if enabled); everything else to LM Studio; fallbacks: Hermes, then external providers (unless local-only) |
+| 2. Backend | `agent` tasks go to the selected enabled agent (Hermes or Pi); everything else to the selected local backend (LM Studio or Strata); fallbacks: the selected agent, then external providers (unless local-only) |
 | 3. Model | `fast`: smallest model ≤ 9B, loaded one preferred. `code`: a coder model if present. `deep`: largest model that fits ~75% of RAM. `balanced`: ~8B class. Optional per-tier overrides in settings |
 | 4. Parameters | Context length (capped by the model maximum), temperature and max tokens per tier |
-| 5. Load | `lms unload --all` (optional) then `lms load <model> --context-length N --gpu max` |
+| 5. Load | LM Studio can load models via `lms`; Strata manages model loading itself |
 
-You can override automatic routing in settings: always LM Studio, always Hermes, or always a specific external provider.
+You can override automatic routing in settings: always the selected local backend, always the selected agent, or always a specific external provider.
 
-**Hermes keywords:** a request goes to Hermes when it contains one of the words or phrases from a built-in list of typical user actions (open, install, delete, create file, send email, remind me, … and their German equivalents). There is one list per language (English, German); all of them are used for matching, but the settings tab only shows the list of the current UI language. The lists are editable under right-click → **Settings…** → **Hermes keywords** (one entry per line, whole words only; a trailing `*` also matches longer forms, e.g. `install*`; articles between words are ignored, so `create file` matches "create a file").
+**Agent keywords:** a request goes to the selected agent when it contains a word or phrase from the built-in list of user actions. Both English and German lists are used for matching; the settings tab shows the current UI language. Edit them under right-click → **Settings…** → **Agent keywords** (one entry per line; a trailing `*` also matches longer forms).
 
 ## Requirements
 
 - Ubuntu 24.04+ or Arch Linux / Arch-based distributions such as CachyOS with GNOME (X11 or Wayland; on Wayland the app runs through XWayland so the window can be placed at the top)
 - `python3-gi` and `gir1.2-gtk-4.0`
-- LM Studio with its local server enabled (default `http://localhost:1234`) and the `lms` CLI (`~/.lmstudio/bin/lms`)
-- Optional: a running Hermes agent API server
+- LM Studio with its local server and `lms` CLI, or a running Strata server
+- Optional: a running Hermes agent API server or an installed and configured Pi
 
 ## Install
 
@@ -76,6 +76,8 @@ Right-click the overlay and choose **Settings…**:
 
 To use [Strata](https://github.com/Niko1221/Strata) instead of LM Studio, start a model with Strata first (for example `strata launch`), select **Strata** as the local model backend under **General**, and configure its server URL and optional API key under **Strata**. Enable image support there only when the served model supports it. Strata manages model loading itself; the LM Studio model-loading settings do not apply.
 
+To use [Pi](https://pi.dev/) instead of Hermes, install Pi, select it as the agent harness under **General**, and enable it under **Pi**. Set its executable and working directory there; model and provider overrides are optional and otherwise Pi uses its own configuration. To connect Pi to Strata, consult `strata connect pi` and configure Pi separately. Pi may execute tools and modify files in its working directory. Pi is unavailable while local-only mode is enabled because the bridge cannot verify Pi's provider or tool network access.
+
 Local-only mode blocks configured remote API endpoints, but cannot restrict network access by agent tools, user-defined commands, the backend itself, or other application features such as update checks.
 
 | Tab | Options |
@@ -83,9 +85,11 @@ Local-only mode blocks configured remote API endpoints, but cannot restrict netw
 | General | Language, local-only mode, routing, global hotkey (validated, conflicts shown), login autostart, install check, automatic backend start, periodic update check and interval |
 | System prompt | Edit or reset the German and English assistant instructions independently |
 | LM Studio | API URL, auto-load, unload others, per-tier model overrides, preferred vision model and automatic VLM loading |
+| Strata | API URL, optional API key and image support |
 | Hermes | Enable, chat endpoint URL, API key, model name |
+| Pi | Enable, executable, working directory, optional provider and model |
 | Routines | Table of all routines: keywords, action, value; master switch; default weather location |
-| Hermes keywords | Words/phrases (per UI language) that send a request to Hermes |
+| Agent keywords | Words/phrases (per UI language) that send a request to the selected agent |
 | External models | Add presets (Claude, ChatGPT, Copilot) or custom endpoints with URL, key and model |
 
 Settings are stored in `~/.config/lms-hermes-bridge/config.json` (file mode `0600`, API keys are stored in plain text there).

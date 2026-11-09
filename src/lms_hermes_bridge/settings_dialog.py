@@ -53,6 +53,7 @@ class SettingsWindow(Gtk.Window):
         nb.append_page(self._lmstudio(), Gtk.Label(label=t("tab_lmstudio")))
         nb.append_page(self._strata(), Gtk.Label(label="Strata"))
         nb.append_page(self._hermes(), Gtk.Label(label=t("tab_hermes")))
+        nb.append_page(self._pi(), Gtk.Label(label="Pi"))
         nb.append_page(self._routines(), Gtk.Label(label=t("tab_routines")))
         nb.append_page(self._keywords(), Gtk.Label(label=t("tab_keywords")))
         nb.append_page(self._providers_tab(), Gtk.Label(label=t("tab_providers")))
@@ -77,6 +78,9 @@ class SettingsWindow(Gtk.Window):
 
         self.w_local_backend = _row(g, t("local_backend"), Gtk.DropDown.new_from_strings(["LM Studio", "Strata"]))
         self.w_local_backend.set_selected(1 if self.cfg.get("local_backend") == "strata" else 0)
+
+        self.w_agent_backend = _row(g, t("agent_backend"), Gtk.DropDown.new_from_strings(["Hermes", "Pi"]))
+        self.w_agent_backend.set_selected(1 if self.cfg.get("agent_backend") == "pi" else 0)
 
         self.w_start_on_login = _row(g, t("start_on_login"), Gtk.Switch(halign=Gtk.Align.START))
         self.w_start_on_login.set_active(self.cfg["start_on_login"])
@@ -273,6 +277,16 @@ class SettingsWindow(Gtk.Window):
         self.w_strata_vision = _row(g, t("strata_vision"), Gtk.Switch(halign=Gtk.Align.START, active=c["vision"]))
         return g
 
+    def _pi(self):
+        c = self.cfg["pi"]
+        g = _grid()
+        self.w_pi_on = _row(g, t("pi_enabled"), Gtk.Switch(halign=Gtk.Align.START, active=c["enabled"]))
+        self.w_pi_executable = _row(g, t("pi_executable"), _entry(c["executable"]))
+        self.w_pi_directory = _row(g, t("pi_directory"), _entry(c["working_directory"]))
+        self.w_pi_model = _row(g, t("model"), _entry(c["model"]))
+        self.w_pi_provider = _row(g, t("pi_provider"), _entry(c["provider"]))
+        return g
+
     def _keywords(self):
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8, margin_top=12, margin_bottom=12,
                       margin_start=12, margin_end=12)
@@ -352,6 +366,10 @@ class SettingsWindow(Gtk.Window):
         c = self.cfg
         c["language"] = self.langs[self.w_lang.get_selected()]
         c["local_backend"] = ("lmstudio", "strata")[min(self.w_local_backend.get_selected(), 1)]
+        c["agent_backend"] = ("hermes", "pi")[min(self.w_agent_backend.get_selected(), 1)]
+        c["pi"].update(enabled=self.w_pi_on.get_active(), executable=self.w_pi_executable.get_text().strip() or "pi",
+                   working_directory=self.w_pi_directory.get_text().strip() or "~",
+                   model=self.w_pi_model.get_text().strip(), provider=self.w_pi_provider.get_text().strip())
         c["strata"]["url"] = self.w_strata_url.get_text().strip()
         c["strata"]["api_key"] = self.w_strata_key.get_text()
         c["strata"]["vision"] = self.w_strata_vision.get_active()
