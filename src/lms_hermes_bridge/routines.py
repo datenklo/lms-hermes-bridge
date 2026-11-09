@@ -5,6 +5,7 @@ Pure parsing plus injectable I/O (`fetch`, `probe`, `opener`, `launcher`) so eve
 import json
 import re
 import shlex
+import shutil
 import subprocess
 import urllib.parse
 import urllib.request
@@ -361,16 +362,17 @@ H = {
         "overview": (
             "Das kann LMS Hermes Bridge:\n\n"
             "• Fragen und Aufgaben per Tastenkombination ({hotkey}), wie ein Suchfenster.\n"
-            "• Wählt automatisch das passende LM-Studio-Modell (schnell, ausgewogen, tief, Code) und lädt es bei Bedarf.\n"
-            "• Aktionen am Rechner (öffnen, installieren, Dateien, …) gehen an Hermes.\n"
+            "• Verwendet LM Studio oder Strata für lokale Modelle.\n"
+            "• Aktionen am Rechner (öffnen, installieren, Dateien, …) gehen an den ausgewählten Agenten.\n"
             "• Externe Modelle (Claude, ChatGPT, Copilot) per Rechtsklick → Einstellungen.\n"
-            "• Nur-lokal-Modus: keine Anfrage verlässt den Rechner.\n"
+            "• Nur-lokal-Modus: entfernte Modell- und Agenten-Endpunkte werden nicht verwendet.\n"
             "• Routinen ohne Modell: Wetter („Wie wird das Wetter morgen in Berlin?“) und diese Hilfe.\n\n"
             "Status:\n{status}\n\n"
             "Mehr dazu: „Hilfe Hotkey“, „Hilfe externe Modelle“, „Hilfe Hermes“, „Hilfe Nur lokal“, "
             "„Hilfe Stichwörter“, „Hilfe Wetter“."),
         "status_lms": "• LM Studio: {s}", "lms_up": "läuft ({n} Modelle)", "lms_down": "nicht erreichbar",
         "status_hermes": "• Hermes: {s}", "h_up": "läuft", "h_down": "aktiviert, aber nicht erreichbar",
+        "pi_up": "installiert", "pi_down": "nicht gefunden", "pi_off": "nicht aktiviert",
         "h_off": "nicht aktiviert", "status_prov": "• Externe Anbieter: {n}",
         "status_local": "• Nur lokal: {s}", "on": "an", "off": "aus",
         "hotkey": "Die Tastenkombination ({hotkey}) öffnet das Fenster. Ändern: Rechtsklick auf das Fenster oder "
@@ -379,12 +381,12 @@ H = {
         "providers": "Externe Modelle: Einstellungen → „Externe Modelle“ → Vorlage wählen (Claude, ChatGPT, Copilot) "
                      "oder eigenen Endpunkt anlegen, API-Schlüssel und Modell eintragen. Verwendbar als feste Route "
                      "(Einstellungen → Routing) oder als Ersatz, wenn LM Studio nicht läuft.",
-        "hermes": "Hermes bekommt Aktionsaufgaben (öffnen, installieren, Dateien …). Einrichten: API-Server in Hermes "
-                  "aktivieren, dann Einstellungen → Hermes → aktivieren, URL und Schlüssel eintragen. Welche Anfragen "
-                  "an Hermes gehen, steuert die Liste unter „Hermes-Stichwörter“.",
-        "local": "Nur lokal: Einstellungen → Allgemein → „Nur lokal“. Dann werden keine externen APIs genutzt und "
-                 "auch die Wetter-Routine (Internet) ist aus.",
-        "keywords": "Hermes-Stichwörter: Einstellungen → Hermes-Stichwörter, ein Eintrag pro Zeile. Ein * am Ende "
+        "hermes": "Aktionsaufgaben gehen an den ausgewählten Agenten. Für Hermes den API-Server aktivieren und "
+              "unter Einstellungen → Hermes URL und Schlüssel eintragen. Pi wird unter Einstellungen → Pi "
+              "konfiguriert. Welche Anfragen an den Agenten gehen, steuern die Agenten-Stichwörter.",
+        "local": "Nur lokal: Entfernte Modell- und Agenten-Endpunkte sowie die Wetter-Routine werden nicht genutzt. "
+             "Agentenwerkzeuge, eigene Befehle, Backends und Update-Prüfungen können Netzwerkzugriff haben.",
+        "keywords": "Agenten-Stichwörter: Einstellungen → Agenten-Stichwörter, ein Eintrag pro Zeile. Ein * am Ende "
                     "erfasst Wortformen (installier*). Es wird die Liste der aktuellen Sprache angezeigt.",
         "models": "LM Studio: Die Bridge wählt je Anfrage das Modell (schnell/ausgewogen/tief/Code) und lädt es mit "
                   "passendem Kontext. Feste Modelle pro Stufe: Einstellungen → LM Studio. Der Server wird bei Bedarf "
@@ -397,16 +399,17 @@ H = {
         "overview": (
             "What LMS Hermes Bridge can do:\n\n"
             "• Questions and tasks via a hotkey ({hotkey}), like a search window.\n"
-            "• Automatically picks the right LM Studio model (fast, balanced, deep, code) and loads it on demand.\n"
-            "• Actions on your computer (open, install, files, …) go to Hermes.\n"
+            "• Uses LM Studio or Strata for local models.\n"
+            "• Actions on your computer (open, install, files, …) go to the selected agent.\n"
             "• External models (Claude, ChatGPT, Copilot) via right-click → Settings.\n"
-            "• Local-only mode: no request leaves your machine.\n"
+            "• Local-only mode: remote model and agent endpoints are not used.\n"
             "• Routines without a model: weather (“What will the weather be like in Berlin tomorrow?”) and this help.\n\n"
             "Status:\n{status}\n\n"
             "More: “help hotkey”, “help external models”, “help Hermes”, “help local only”, “help keywords”, "
             "“help weather”."),
         "status_lms": "• LM Studio: {s}", "lms_up": "running ({n} models)", "lms_down": "not reachable",
         "status_hermes": "• Hermes: {s}", "h_up": "running", "h_down": "enabled but not reachable",
+        "pi_up": "installed", "pi_down": "not found", "pi_off": "not enabled",
         "h_off": "not enabled", "status_prov": "• External providers: {n}",
         "status_local": "• Local only: {s}", "on": "on", "off": "off",
         "hotkey": "The hotkey ({hotkey}) opens the window. Change it: right-click the window or tray icon → Settings "
@@ -414,12 +417,12 @@ H = {
         "providers": "External models: Settings → “External models” → pick a preset (Claude, ChatGPT, Copilot) or a "
                      "custom endpoint, enter API key and model. Use them as a fixed route (Settings → Routing) or as "
                      "fallback when LM Studio is down.",
-        "hermes": "Hermes gets action tasks (open, install, files …). Set up: enable the API server in Hermes, then "
-                  "Settings → Hermes → enable, enter URL and key. The “Hermes keywords” list controls which requests "
-                  "go to Hermes.",
-        "local": "Local only: Settings → General → “Local only”. External APIs are never used and the weather routine "
-                 "(internet) is off too.",
-        "keywords": "Hermes keywords: Settings → Hermes keywords, one entry per line. A trailing * matches word "
+        "hermes": "Action tasks go to the selected agent. For Hermes, enable its API server and enter the URL and "
+              "key under Settings → Hermes. Configure Pi under Settings → Pi. Agent keywords determine which "
+              "requests go to the agent.",
+        "local": "Local only: Remote model and agent endpoints and the weather routine are not used. "
+             "Agent tools, custom commands, backends and update checks can access the network.",
+        "keywords": "Agent keywords: Settings → Agent keywords, one entry per line. A trailing * matches word "
                     "forms (install*). The list of the current language is shown.",
         "models": "LM Studio: the bridge picks the model per request (fast/balanced/deep/code) and loads it with a "
                   "suitable context. Fixed models per tier: Settings → LM Studio. The server is started "
@@ -438,11 +441,19 @@ def pretty_hotkey(accel: str) -> str:
 
 
 def default_probe(cfg: dict) -> dict:
-    from . import lmstudio, services
-    models = lmstudio.list_models(cfg["lmstudio"]["url"])
+    from . import installer, lmstudio, services, strata
+    backend = cfg.get("local_backend", "lmstudio")
+    endpoint = cfg[backend]["url"]
+    models = (None if cfg["local_only"] and not installer._is_local(endpoint) else
+              strata.list_models(cfg["strata"]) if backend == "strata" else lmstudio.list_models(endpoint))
+    agent_backend = cfg.get("agent_backend", "hermes")
+    agent_status = (bool(shutil.which(cfg["pi"].get("executable") or "pi")) if cfg["pi"]["enabled"] else None
+                    ) if agent_backend == "pi" else (
+                        services.hermes_up(cfg) if cfg["hermes"]["enabled"] and (
+                            not cfg["local_only"] or installer._is_local(cfg["hermes"]["endpoint"])) else None)
     return {
         "lmstudio": None if models is None else len([m for m in models if m.is_chat]),
-        "hermes": services.hermes_up(cfg) if cfg["hermes"]["enabled"] else None,
+        "hermes": agent_status,
     }
 
 
@@ -451,8 +462,14 @@ def _status(cfg: dict, h: dict, probe) -> str:
     lms = h["lms_up"].format(n=p["lmstudio"]) if p["lmstudio"] is not None else h["lms_down"]
     hermes = h["h_off"] if p["hermes"] is None else h["h_up"] if p["hermes"] else h["h_down"]
     providers = len([x for x in cfg["providers"] if x.get("enabled", True)])
+    local_status = h["status_lms"].format(s=lms)
+    if cfg.get("local_backend") == "strata":
+        local_status = local_status.replace("LM Studio", "Strata")
+    agent_status = h["status_hermes"].format(s=hermes)
+    if cfg.get("agent_backend") == "pi":
+        agent_status = "• Pi: " + h["pi_off" if p["hermes"] is None else "pi_up" if p["hermes"] else "pi_down"]
     return "\n".join([
-        h["status_lms"].format(s=lms), h["status_hermes"].format(s=hermes), h["status_prov"].format(n=providers),
+        local_status, agent_status, h["status_prov"].format(n=providers),
         h["status_local"].format(s=h["on" if cfg["local_only"] else "off"]),
     ])
 
@@ -555,6 +572,9 @@ def run_custom(row: dict, prompt: str, match: re.Match, lang: str, launcher=None
                 for a in (fill(a, prompt, text) for a in shlex.split(value))]
         if not argv:
             return Result("custom", lang, m["empty"], label)
+        if row.get("id") == "builtin:terminal" and argv == ["x-terminal-emulator"]:
+            argv = [next((name for name in ("x-terminal-emulator", "gnome-terminal", "kgx")
+                          if shutil.which(name)), "x-terminal-emulator")]
         spawn(argv)
         return Result("custom", lang, m["started"].format(cmd=shlex.join(argv)), label)
     except ValueError:

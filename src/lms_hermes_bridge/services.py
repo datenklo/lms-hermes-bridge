@@ -71,6 +71,8 @@ def _spec(name: str):
 def ensure(cfg: dict, name: str, timeout: float = 60) -> bool:
     """True when the service is reachable afterwards. Only starts local, installed services."""
     is_up, start, url, installed = _spec(name)
+    if cfg.get("local_only") and not _is_local(url(cfg)):
+        return False
     if is_up(cfg):
         return True
     if not cfg.get("autostart_backends", True) or not _is_local(url(cfg)) or not installed():

@@ -41,9 +41,9 @@ def missing(cfg: dict) -> list[str]:
     if not cfg.get("check_components", True):
         return []
     found = []
-    if lmstudio_missing(cfg):
+    if cfg.get("local_backend", "lmstudio") == "lmstudio" and lmstudio_missing(cfg):
         found.append("lmstudio")
-    if hermes_missing(cfg):
+    if cfg.get("agent_backend", "hermes") == "hermes" and hermes_missing(cfg):
         found.append("hermes")
     return found
 

@@ -139,7 +139,7 @@ class Tray:
             root = GLib.Variant("(ia{sv}av)", (
                 0, {"children-display": GLib.Variant("s", "submenu")},
                 [self._item(i) for i in range(1, len(self.items) + 1)]))
-            invocation.return_value(GLib.Variant.new_tuple(GLib.Variant("u", 1), root))
+            invocation.return_value(GLib.Variant.new_tuple(GLib.Variant("u", self.layout_revision), root))
         elif method == "GetGroupProperties":
             ids = params.unpack()[0] or list(range(1, len(self.items) + 1))
             out = []

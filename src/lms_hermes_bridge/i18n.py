@@ -1,5 +1,6 @@
 """Minimal translation layer. Add a language by adding a dict to STRINGS."""
 import locale
+import os
 
 STRINGS = {
     "en": {
@@ -65,7 +66,7 @@ STRINGS = {
         "act_answer": "Show text",
         "act_command": "Run program",
         "act_url": "Open URL",
-        "act_hermes": "Send to Hermes",
+        "act_hermes": "Send to selected agent",
         "act_llm": "Ask the model",
         "act_weather": "Weather (built-in)",
         "act_help": "Help (built-in)",
@@ -75,7 +76,7 @@ STRINGS = {
         "ph_hermes": "Task for Hermes, e.g. Do this: {input}",
         "ph_llm": "Prompt for the model, e.g. Summarize: {input}",
         "routines_table_hint": "A request that contains one of a row's keywords runs that row's action instead of asking the model. Rows are checked top to bottom, your own rows before the built-in ones. {input} is the request without the keyword; also {prompt}, {home}, {date}, {time}. A trailing * matches longer word forms (translate*). Programs run without a shell; web addresses must start with http, https or mailto.",
-        "err_hermes_off": "Hermes is not enabled (Settings \u2192 Hermes).",
+        "err_hermes_off": "The selected agent is disabled or unavailable in local-only mode.",
         "routines_hint": "Answered instantly without a language model. Try: „What can this tool do?“ or „What will the weather be like in Berlin tomorrow?“",
         "routine_weather_on": "Weather routine",
         "routine_help_on": "Help routine",
@@ -95,8 +96,8 @@ STRINGS = {
         "routine_label": "Routine · {name}",
         "autostart_backends": "Start LM Studio / Hermes automatically in the background",
         "starting": "Starting {name}…",
-        "tab_keywords": "Hermes keywords",
-        "keywords_help": "Requests containing one of these words or phrases ({lang}) are sent to Hermes. One entry per line; a trailing * also matches longer word forms (install* matches installing). Other languages keep their own lists.",
+        "tab_keywords": "Agent keywords",
+        "keywords_help": "Requests containing one of these words or phrases ({lang}) are sent to the selected agent. One entry per line; a trailing * also matches longer word forms (install* matches installing). Other languages keep their own lists.",
         "keywords_reset": "Reset to defaults",
         "check_components": "Offer to install missing LM Studio / Hermes at start",
         "setup_title": "{name} is not installed",
@@ -116,6 +117,14 @@ STRINGS = {
         "tab_hermes": "Hermes",
         "tab_providers": "External models",
         "language": "Language",
+        "local_backend": "Local model backend",
+        "agent_backend": "Agent harness",
+        "pi_enabled": "Enable Pi",
+        "pi_executable": "Pi executable",
+        "pi_directory": "Pi working directory",
+        "pi_provider": "Pi provider (requires a model)",
+        "strata_url": "Strata server URL",
+        "strata_vision": "The served Strata model supports images",
         "start_on_login": "Start LMS Hermes Bridge automatically after login",
         "auto": "Automatic",
         "hotkey": "Global hotkey",
@@ -125,8 +134,8 @@ STRINGS = {
         "local_only": "Local only (never use external APIs)",
         "routing": "Routing",
         "route_auto": "Automatic",
-        "route_local": "Always LM Studio",
-        "route_hermes": "Always Hermes",
+        "route_local": "Always local model backend",
+        "route_hermes": "Always selected agent",
         "lms_url": "LM Studio API URL",
         "lms_auto_load": "Load models automatically (lms CLI)",
         "lms_unload": "Unload other models before loading",
@@ -150,7 +159,7 @@ STRINGS = {
         "cancel": "Cancel",
         "preset": "Add preset",
         "thinking": "Thinking…",
-        "err_no_target": "No backend available. Start LM Studio or configure a provider.",
+        "err_no_target": "No backend available. Start the selected local server or configure a provider.",
         "err_local_only": "Local-only mode is on and no local backend is reachable.",
         "err_generic": "Error",
         "route_label": "{backend} · {model} · {tier} — {reason}",
@@ -224,7 +233,7 @@ STRINGS = {
         "act_answer": "Text anzeigen",
         "act_command": "Programm starten",
         "act_url": "URL öffnen",
-        "act_hermes": "An Hermes senden",
+        "act_hermes": "An ausgewählten Agenten senden",
         "act_llm": "Modell fragen",
         "act_weather": "Wetter (eingebaut)",
         "act_help": "Hilfe (eingebaut)",
@@ -234,7 +243,7 @@ STRINGS = {
         "ph_hermes": "Aufgabe für Hermes, z. B. Erledige: {input}",
         "ph_llm": "Prompt für das Modell, z. B. Fasse zusammen: {input}",
         "routines_table_hint": "Enthält eine Anfrage ein Stichwort einer Zeile, wird deren Aktion ausgeführt, statt das Modell zu fragen. Die Zeilen werden von oben nach unten geprüft, eigene vor den eingebauten. {input} ist die Anfrage ohne das Stichwort; außerdem {prompt}, {home}, {date}, {time}. Ein * am Ende erfasst längere Wortformen (übersetze*). Programme laufen ohne Shell; Webadressen müssen mit http, https oder mailto beginnen.",
-        "err_hermes_off": "Hermes ist nicht aktiviert (Einstellungen \u2192 Hermes).",
+        "err_hermes_off": "Der ausgewählte Agent ist deaktiviert oder im Nur-lokal-Modus nicht verfügbar.",
         "routines_hint": "Werden sofort ohne Sprachmodell beantwortet. Probiere: „Was kann dieses Tool?“ oder „Wie wird das Wetter morgen in Berlin?“",
         "routine_weather_on": "Wetter-Routine",
         "routine_help_on": "Hilfe-Routine",
@@ -254,8 +263,8 @@ STRINGS = {
         "routine_label": "Routine · {name}",
         "autostart_backends": "LM Studio / Hermes automatisch im Hintergrund starten",
         "starting": "Starte {name}…",
-        "tab_keywords": "Hermes-Stichwörter",
-        "keywords_help": "Anfragen, die eines dieser Wörter oder Wortgruppen ({lang}) enthalten, gehen an Hermes. Ein Eintrag pro Zeile; ein * am Ende erfasst auch längere Wortformen (installier* trifft installieren). Andere Sprachen behalten ihre eigene Liste.",
+        "tab_keywords": "Agenten-Stichwörter",
+        "keywords_help": "Anfragen, die eines dieser Wörter oder Wortgruppen ({lang}) enthalten, gehen an den ausgewählten Agenten. Ein Eintrag pro Zeile; ein * am Ende erfasst auch längere Wortformen (installier* trifft installieren). Andere Sprachen behalten ihre eigene Liste.",
         "keywords_reset": "Auf Standard zurücksetzen",
         "check_components": "Fehlendes LM Studio / Hermes beim Start zur Installation anbieten",
         "setup_title": "{name} ist nicht installiert",
@@ -275,6 +284,14 @@ STRINGS = {
         "tab_hermes": "Hermes",
         "tab_providers": "Externe Modelle",
         "language": "Sprache",
+        "local_backend": "Lokales Modell-Backend",
+        "agent_backend": "Agenten-Harness",
+        "pi_enabled": "Pi aktivieren",
+        "pi_executable": "Pi-Programm",
+        "pi_directory": "Pi-Arbeitsverzeichnis",
+        "pi_provider": "Pi-Anbieter (benötigt ein Modell)",
+        "strata_url": "Strata-Server-URL",
+        "strata_vision": "Das bereitgestellte Strata-Modell unterstützt Bilder",
         "start_on_login": "LMS Hermes Bridge nach der Anmeldung automatisch starten",
         "auto": "Automatisch",
         "hotkey": "Globale Tastenkombination",
@@ -284,8 +301,8 @@ STRINGS = {
         "local_only": "Nur lokal (nie externe APIs nutzen)",
         "routing": "Routing",
         "route_auto": "Automatisch",
-        "route_local": "Immer LM Studio",
-        "route_hermes": "Immer Hermes",
+        "route_local": "Immer lokales Modell-Backend",
+        "route_hermes": "Immer ausgewählter Agent",
         "lms_url": "LM-Studio-API-URL",
         "lms_auto_load": "Modelle automatisch laden (lms CLI)",
         "lms_unload": "Andere Modelle vor dem Laden entladen",
@@ -309,7 +326,7 @@ STRINGS = {
         "cancel": "Abbrechen",
         "preset": "Vorlage hinzufügen",
         "thinking": "Denke nach…",
-        "err_no_target": "Kein Backend verfügbar. Starte LM Studio oder konfiguriere einen Anbieter.",
+        "err_no_target": "Kein Backend verfügbar. Starte den ausgewählten lokalen Server oder konfiguriere einen Anbieter.",
         "err_local_only": "Nur-lokal-Modus aktiv, aber kein lokales Backend erreichbar.",
         "err_generic": "Fehler",
         "route_label": "{backend} · {model} · {tier} — {reason}",
@@ -326,8 +343,16 @@ _lang = "en"
 
 
 def detect() -> str:
-    code = (locale.getlocale()[0] or "en")[:2].lower()
-    return code if code in STRINGS else "en"
+    system_locale = (os.environ.get("LC_ALL") or os.environ.get("LC_MESSAGES")
+                     or os.environ.get("LANG") or locale.getlocale()[0] or "en")
+    if system_locale.split(".", 1)[0].upper() in ("C", "POSIX"):
+        return "en"
+    preferences = os.environ.get("LANGUAGE", "").split(":") + [system_locale]
+    for language in preferences:
+        code = language.split(".", 1)[0].split("@", 1)[0].split("_", 1)[0].split("-", 1)[0].lower()
+        if code in STRINGS:
+            return code
+    return "en"
 
 
 def set_language(setting: str) -> None:

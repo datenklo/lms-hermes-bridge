@@ -8,6 +8,7 @@ from dataclasses import dataclass, field
 from .config import DEFAULT_AGENT_KEYWORDS
 from .keywords import compile_keywords
 from .lmstudio import ModelInfo
+from .installer import _is_local
 
 CODE_RE = re.compile(
     r"\b(code|coding|function|class|bug|debug|refactor|compile|regex|script|python|rust|"
@@ -113,24 +114,38 @@ def _prefer_loaded(pool, size, target: float, prefer_big: bool = False):
     return min(pool, key=score)
 
 
+def agent_route(cfg: dict, reason: str) -> Route | None:
+    backend = cfg.get("agent_backend", "hermes")
+    if backend == "pi":
+        if cfg["pi"]["enabled"] and not cfg["local_only"]:
+            return Route("pi", "agent", reason, cfg["pi"].get("model") or "Pi")
+        return None
+    if cfg["hermes"]["enabled"] and (not cfg["local_only"] or _is_local(cfg["hermes"]["endpoint"])):
+        return Route("hermes", "agent", reason, cfg["hermes"]["model"])
+    return None
+
+
 def decide(prompt: str, cfg: dict, models: list[ModelInfo] | None, mem_bytes: int,
            needs_image: bool = False) -> Route | None:
     """Builds a Route. Returns None when no backend is usable."""
     tier, reason = classify(prompt, cfg.get("agent_keywords"))
     routing = cfg["routing"]
     providers = [] if cfg["local_only"] else [p for p in cfg["providers"] if p.get("enabled", True)]
-    hermes_ok = cfg["hermes"]["enabled"]
+    agent = agent_route(cfg, reason)
+    backend = cfg.get("local_backend", "lmstudio")
+    if cfg["local_only"] and not _is_local(cfg[backend]["url"]):
+        models = None
 
     if not needs_image and routing.startswith("provider:") and not cfg["local_only"]:
         pid = routing.split(":", 1)[1]
         for p in providers:
             if p["id"] == pid:
                 return Route("provider", tier, "forced", p["model"], pid)
-    if not needs_image and routing == "hermes" and hermes_ok:
-        return Route("hermes", "agent", "forced", cfg["hermes"]["model"])
+    if not needs_image and routing == "hermes" and agent:
+        return agent_route(cfg, "forced")
 
-    if not needs_image and routing == "auto" and tier == "agent" and hermes_ok:
-        return Route("hermes", "agent", reason, cfg["hermes"]["model"])
+    if not needs_image and routing == "auto" and tier == "agent" and agent:
+        return agent
 
     if models is not None:
         lms = cfg["lmstudio"]
@@ -143,7 +158,7 @@ def decide(prompt: str, cfg: dict, models: list[ModelInfo] | None, mem_bytes: in
             params["supports_vision"] = m.supports_vision
             params["supports_thinking"] = m.supports_thinking
             params["supports_tools"] = m.supports_tools
-            return Route("lmstudio", tier, reason, m.key, params=params, needs_load=not m.loaded)
+            return Route(backend, tier, reason, m.key, params=params, needs_load=not m.loaded)
 
     if needs_image:
         return None
@@ -152,8 +167,8 @@ def decide(prompt: str, cfg: dict, models: list[ModelInfo] | None, mem_bytes: in
         return None
 
     # Fallbacks when LM Studio is down or has no model.
-    if hermes_ok:
-        return Route("hermes", tier, "LM Studio unavailable", cfg["hermes"]["model"])
+    if agent:
+        return agent_route(cfg, "Local backend unavailable")
     if providers:
         p = providers[0]
         return Route("provider", tier, "LM Studio unavailable", p["model"], p["id"])
