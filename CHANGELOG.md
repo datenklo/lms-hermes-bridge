@@ -14,6 +14,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - Check and install missing apt or pacman system dependencies after terminal confirmation.
 - Apply priority routing to Pi agent tasks, stopping fallback after output, tool activity or an uncertain failure; disable extensions and MCP for these attempts.
 - Add a confirmed uninstall action in settings that preserves configuration and other components.
+- Add a terminal uninstaller with an optional confirmed cleanup of bridge credentials and recognized component installations and data.
 
 ## [0.5.0] - 2026-11-09
 

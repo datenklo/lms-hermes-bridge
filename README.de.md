@@ -69,6 +69,17 @@ Die Tray-Erweiterung mit `gnome-extensions enable appindicatorsupport@rgcjonas.g
 
 Zur Deinstallation unter **Einstellungen…** auf **Deinstallieren…** klicken und bestätigen. Die App entfernt ihre pipx-Installation, Tastenkombination, Autostart und Anwendungsmenüeintrag und beendet sich. Konfiguration einschließlich API-Schlüsseln, Systempakete, andere Komponenten und der Git-Checkout bleiben erhalten.
 
+Nach einem Update oder einer Neuinstallation der Bridge steht auch ein Terminal-Uninstaller zur Verfügung:
+
+```bash
+lms-hermes-bridge-uninstall
+lms-hermes-bridge-uninstall --delete-all
+```
+
+Bridge und zu entfernende Komponenten vorher beenden. Der erste Befehl erhält die Konfiguration. `--delete-all` fragt nach Zustimmung zur Löschung der angezeigten Bridge-Konfiguration samt lokal gespeicherten Schlüsseln und bietet zusätzlich die erkannten Pfade von LM Studio/llmster, Pi und Strata einschließlich ihrer Daten einzeln zur Löschung an. Für eine erkannte Hermes-Installation zeigt er eine Vorschau und startet nach Bestätigung den interaktiven Hermes-Uninstaller; dort die vollständige Entfernung wählen. Die Komponenten können auch unabhängig von der Bridge installiert worden sein. Abgelehnte Komponenten und gemeinsam genutzte Systempakete bleiben erhalten.
+
+Es werden nur erkannte Pfade und Installationsarten berücksichtigt. Individuelle Speicherorte, Symlinks, paketverwaltete Programme, externe Modelle, Backups, Shell-PATH-Einträge und weitere Kopien müssen gegebenenfalls manuell entfernt werden; der LM-Studio-Speicherortverweis bleibt zur Prüfung erhalten. API-Schlüssel werden bei ihren Anbietern nicht widerrufen, und das Löschen ist kein sicheres Überschreiben. Der Git-Checkout bleibt erhalten.
+
 Ohne Installation starten: `PYTHONPATH=src python3 -m lms_hermes_bridge`
 
 ## Konfiguration
