@@ -1,5 +1,6 @@
 """Minimal translation layer. Add a language by adding a dict to STRINGS."""
 import locale
+import os
 
 STRINGS = {
     "en": {
@@ -326,8 +327,16 @@ _lang = "en"
 
 
 def detect() -> str:
-    code = (locale.getlocale()[0] or "en")[:2].lower()
-    return code if code in STRINGS else "en"
+    system_locale = (os.environ.get("LC_ALL") or os.environ.get("LC_MESSAGES")
+                     or os.environ.get("LANG") or locale.getlocale()[0] or "en")
+    if system_locale.split(".", 1)[0].upper() in ("C", "POSIX"):
+        return "en"
+    preferences = os.environ.get("LANGUAGE", "").split(":") + [system_locale]
+    for language in preferences:
+        code = language.split(".", 1)[0].split("@", 1)[0].split("_", 1)[0].split("-", 1)[0].lower()
+        if code in STRINGS:
+            return code
+    return "en"
 
 
 def set_language(setting: str) -> None:

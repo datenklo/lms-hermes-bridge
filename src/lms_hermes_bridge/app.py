@@ -647,6 +647,8 @@ class BridgeApp(Gtk.Application):
 
     def _reload(self):
         set_language(self.cfg["language"])
+        if self.tray:
+            self.tray.notify_layout_changed()
         self._configure_update_monitor()
         old = self.win
         self.win = BridgeWindow(self, self.cfg)
