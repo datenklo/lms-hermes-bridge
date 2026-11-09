@@ -117,6 +117,12 @@ DEFAULTS = {
     "weather_location": "",  # used when a weather question names no place
     "routines": copy.deepcopy(DEFAULT_ROUTINES),  # table in the settings: keywords -> action
     "routing": "auto",  # auto | local | hermes | provider:<id>
+    "local_backend": "lmstudio",
+    "strata": {
+        "url": "http://127.0.0.1:8080",
+        "api_key": "",
+        "vision": False,
+    },
     "lmstudio": {
         "url": "http://localhost:1234",
         "auto_load": True,  # load the selected model via the `lms` CLI

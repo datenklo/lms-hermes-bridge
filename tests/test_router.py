@@ -78,6 +78,20 @@ def test_model_capabilities_use_api_type_and_metadata():
     assert reasoning_model.supports_thinking
 
 
+def test_strata_models_use_strata_route_without_lms_loading():
+    c = cfg(local_backend="strata")
+    model = ModelInfo("strata-model", loaded=True)
+    route = router.decide("hello", c, [model], 32 * GB)
+    assert route.backend == "strata" and route.model == "strata-model" and not route.needs_load
+
+
+def test_local_only_rejects_remote_model_and_agent_endpoints():
+    c = cfg(local_backend="strata", local_only=True)
+    c["strata"]["url"] = "https://example.com"
+    c["hermes"].update(enabled=True, endpoint="https://example.com/v1/chat/completions")
+    assert router.decide("open terminal", c, MODELS, 32 * GB) is None
+
+
 def test_lmstudio_model_listing_keeps_capability_metadata(monkeypatch):
     from lms_hermes_bridge import lmstudio
     monkeypatch.setattr(lmstudio, "_get_json", lambda _url: {"data": [{

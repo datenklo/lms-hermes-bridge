@@ -23,7 +23,7 @@ Ein per Tastenkombination aufrufbares Overlay für Ubuntu (GNOME), das den Deskt
 - **Auf Geschwindigkeit ausgelegt.** Ein bereits geladenes, passendes Modell wird bevorzugt; Modelle, die nicht in den RAM passen, werden übersprungen; geladen wird nur bei Bedarf über die `lms`-CLI.
 - **Hermes-Anbindung** für aktionsorientierte Aufgaben („öffne…“, „installiere…“, „erstelle eine Datei…“) über den OpenAI-kompatiblen API-Server von Hermes.
 - **Externe Modelle** (Claude, ChatGPT, Copilot/GitHub Models, eigene OpenAI-kompatible Endpunkte) als feste Route oder als Fallback, wenn LM Studio nicht läuft.
-- **„Nur lokal“-Schalter**, der garantiert, dass keine Anfrage den Rechner verlässt.
+- **„Nur lokal“-Schalter**, der Anfragen an konfigurierte entfernte Modell- und Agenten-Endpunkte blockiert.
 - **Installation beim Start:** Wird LM Studio (Headless-Daemon + `lms`-CLI) oder Hermes auf diesem Rechner nicht gefunden, fragt die App, ob es mit dem offiziellen Installationsskript des Herstellers installiert werden soll. Der genaue Befehl wird vorher angezeigt; ohne Bestätigung wird nichts installiert. In den Einstellungen abschaltbar.
 - **Rechtsklick-Einstellungen** im Overlay für alle Endpunkte, Schlüssel und Optionen.
 - **Mehrsprachige Oberfläche:** Englisch und Deutsch (automatisch erkannt, umschaltbar). Neue Sprachen benötigen nur ein weiteres Wörterbuch in `i18n.py`.
@@ -73,6 +73,10 @@ Ohne Installation starten: `PYTHONPATH=src python3 -m lms_hermes_bridge`
 ## Konfiguration
 
 Rechtsklick auf das Overlay oder das Trayicon, dann **Einstellungen…**:
+
+Für [Strata](https://github.com/Niko1221/Strata) statt LM Studio zuerst ein Modell mit Strata starten (zum Beispiel `strata launch`), unter **Allgemein** als lokales Modell-Backend **Strata** wählen und unter **Strata** Server-URL und optionalen API-Schlüssel eintragen. Bildunterstützung dort nur aktivieren, wenn das bereitgestellte Modell Bilder verarbeiten kann. Strata verwaltet das Laden seiner Modelle selbst; die LM-Studio-Ladeeinstellungen gelten dafür nicht.
+
+Der Nur-lokal-Modus blockiert konfigurierte entfernte API-Endpunkte, kann aber Netzwerkzugriffe von Agentenwerkzeugen, eigenen Befehlen, dem Backend selbst oder anderen App-Funktionen wie der Update-Prüfung nicht einschränken.
 
 | Reiter | Optionen |
 |--------|----------|

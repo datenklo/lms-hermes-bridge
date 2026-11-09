@@ -40,3 +40,9 @@ def test_running_server_counts_as_installed(monkeypatch, tmp_path):
 def test_command_text_uses_official_urls():
     assert installer.command_text("hermes") == "curl -fsSL https://hermes-agent.nousresearch.com/install.sh | bash"
     assert installer.command_text("lmstudio").startswith("curl -fsSL https://lmstudio.ai/")
+
+
+def test_strata_selection_does_not_offer_lmstudio(monkeypatch):
+    monkeypatch.setattr(installer, "lmstudio_missing", lambda _cfg: True)
+    monkeypatch.setattr(installer, "hermes_missing", lambda _cfg: False)
+    assert installer.missing(cfg(local_backend="strata")) == []

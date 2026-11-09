@@ -8,6 +8,7 @@ from dataclasses import dataclass, field
 from .config import DEFAULT_AGENT_KEYWORDS
 from .keywords import compile_keywords
 from .lmstudio import ModelInfo
+from .installer import _is_local
 
 CODE_RE = re.compile(
     r"\b(code|coding|function|class|bug|debug|refactor|compile|regex|script|python|rust|"
@@ -119,7 +120,10 @@ def decide(prompt: str, cfg: dict, models: list[ModelInfo] | None, mem_bytes: in
     tier, reason = classify(prompt, cfg.get("agent_keywords"))
     routing = cfg["routing"]
     providers = [] if cfg["local_only"] else [p for p in cfg["providers"] if p.get("enabled", True)]
-    hermes_ok = cfg["hermes"]["enabled"]
+    hermes_ok = cfg["hermes"]["enabled"] and (not cfg["local_only"] or _is_local(cfg["hermes"]["endpoint"]))
+    backend = cfg.get("local_backend", "lmstudio")
+    if cfg["local_only"] and not _is_local(cfg[backend]["url"]):
+        models = None
 
     if not needs_image and routing.startswith("provider:") and not cfg["local_only"]:
         pid = routing.split(":", 1)[1]
@@ -143,7 +147,7 @@ def decide(prompt: str, cfg: dict, models: list[ModelInfo] | None, mem_bytes: in
             params["supports_vision"] = m.supports_vision
             params["supports_thinking"] = m.supports_thinking
             params["supports_tools"] = m.supports_tools
-            return Route("lmstudio", tier, reason, m.key, params=params, needs_load=not m.loaded)
+            return Route(backend, tier, reason, m.key, params=params, needs_load=not m.loaded)
 
     if needs_image:
         return None

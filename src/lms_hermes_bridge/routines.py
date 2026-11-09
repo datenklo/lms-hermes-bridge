@@ -439,11 +439,15 @@ def pretty_hotkey(accel: str) -> str:
 
 
 def default_probe(cfg: dict) -> dict:
-    from . import lmstudio, services
-    models = lmstudio.list_models(cfg["lmstudio"]["url"])
+    from . import installer, lmstudio, services, strata
+    backend = cfg.get("local_backend", "lmstudio")
+    endpoint = cfg[backend]["url"]
+    models = (None if cfg["local_only"] and not installer._is_local(endpoint) else
+              strata.list_models(cfg["strata"]) if backend == "strata" else lmstudio.list_models(endpoint))
     return {
         "lmstudio": None if models is None else len([m for m in models if m.is_chat]),
-        "hermes": services.hermes_up(cfg) if cfg["hermes"]["enabled"] else None,
+        "hermes": services.hermes_up(cfg) if cfg["hermes"]["enabled"] and (
+            not cfg["local_only"] or installer._is_local(cfg["hermes"]["endpoint"])) else None,
     }
 
 
@@ -452,8 +456,11 @@ def _status(cfg: dict, h: dict, probe) -> str:
     lms = h["lms_up"].format(n=p["lmstudio"]) if p["lmstudio"] is not None else h["lms_down"]
     hermes = h["h_off"] if p["hermes"] is None else h["h_up"] if p["hermes"] else h["h_down"]
     providers = len([x for x in cfg["providers"] if x.get("enabled", True)])
+    local_status = h["status_lms"].format(s=lms)
+    if cfg.get("local_backend") == "strata":
+        local_status = local_status.replace("LM Studio", "Strata")
     return "\n".join([
-        h["status_lms"].format(s=lms), h["status_hermes"].format(s=hermes), h["status_prov"].format(n=providers),
+        local_status, h["status_hermes"].format(s=hermes), h["status_prov"].format(n=providers),
         h["status_local"].format(s=h["on" if cfg["local_only"] else "off"]),
     ])
 

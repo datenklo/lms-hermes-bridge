@@ -23,7 +23,7 @@ A hotkey-driven launcher overlay for Ubuntu (GNOME) that bridges your desktop, [
 - **Fast by design.** An already loaded model that fits the request is preferred over loading a new one; models that do not fit your RAM are skipped; models are loaded through the `lms` CLI only when needed.
 - **Hermes integration** for action-oriented tasks ("open…", "install…", "create a file…") via Hermes' OpenAI-compatible API server.
 - **External models** (Claude, ChatGPT, Copilot/GitHub Models, custom OpenAI-compatible endpoints), usable as forced route or as fallback when LM Studio is down.
-- **Local-only switch** that guarantees no request leaves your machine.
+- **Local-only switch** that blocks requests to configured remote model and agent endpoints.
 - **Install on start:** if LM Studio (headless daemon + `lms` CLI) or Hermes is not found on this machine, the app asks whether to install it with the vendor's official install script. The exact command is shown before anything runs; nothing is installed without confirmation. Can be switched off in the settings.
 - **Right-click settings menu** inside the overlay for all endpoints, keys and options.
 - **Multilingual UI:** English and German (auto-detected, switchable). New languages are one dictionary in `i18n.py`.
@@ -73,6 +73,10 @@ Run without installing: `PYTHONPATH=src python3 -m lms_hermes_bridge`
 ## Configuration
 
 Right-click the overlay and choose **Settings…**:
+
+To use [Strata](https://github.com/Niko1221/Strata) instead of LM Studio, start a model with Strata first (for example `strata launch`), select **Strata** as the local model backend under **General**, and configure its server URL and optional API key under **Strata**. Enable image support there only when the served model supports it. Strata manages model loading itself; the LM Studio model-loading settings do not apply.
+
+Local-only mode blocks configured remote API endpoints, but cannot restrict network access by agent tools, user-defined commands, the backend itself, or other application features such as update checks.
 
 | Tab | Options |
 |-----|---------|
