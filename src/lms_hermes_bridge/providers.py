@@ -1,4 +1,5 @@
 """Streaming chat clients for OpenAI-compatible and Anthropic endpoints (stdlib only)."""
+import http.client
 import json
 import re
 import urllib.error
@@ -8,6 +9,36 @@ from typing import Iterator
 
 class ChatError(Exception):
     pass
+
+
+class RetryUnsafeError(ChatError):
+    pass
+
+
+def stream_with_fallback(routes, open_stream, cancelled=lambda: False):
+    last_error = None
+    for route in routes:
+        if cancelled():
+            return
+        emitted = False
+        try:
+            for chunk in open_stream(route):
+                if cancelled():
+                    return
+                if chunk:
+                    emitted = True
+                    yield chunk
+            return
+        except (ChatError, OSError, http.client.HTTPException) as error:
+            if isinstance(error, RetryUnsafeError):
+                raise
+            if not isinstance(error, ChatError):
+                error = ChatError(str(error))
+            if emitted:
+                raise error
+            last_error = error
+    if last_error is not None:
+        raise last_error
 
 
 def _open(req: urllib.request.Request, timeout: float = 120):

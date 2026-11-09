@@ -5,6 +5,16 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+### Added
+
+- Offer the official local Strata installer only when a GPU with more than 11 GiB of dedicated VRAM is detected.
+- Report the missing GNOME AppIndicator extension during installation and document its setup on Arch Linux.
+- Add graphical setup for Pi or Hermes, model servers and API providers, with a GitHub project link.
+- Add local, LAN and Internet priority with pre-output fallback for ordinary model requests.
+- Check and install missing apt or pacman system dependencies after terminal confirmation.
+- Apply priority routing to Pi agent tasks, stopping fallback after output, tool activity or an uncertain failure; disable extensions and MCP for these attempts.
+- Add a confirmed uninstall action in settings that preserves configuration and other components.
+
 ## [0.5.0] - 2026-11-09
 
 ### Added

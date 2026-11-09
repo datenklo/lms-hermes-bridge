@@ -24,7 +24,7 @@ Ein per Tastenkombination aufrufbares Overlay für GNOME unter Ubuntu und Arch-b
 - **Agentenanbindung:** Aktionsorientierte Aufgaben („öffne…“, „installiere…“, „erstelle eine Datei…“) gehen an den ausgewählten Hermes-API-Server oder die Pi-Installation.
 - **Externe Modelle** (Claude, ChatGPT, Copilot/GitHub Models, eigene OpenAI-kompatible Endpunkte) als feste Route oder als Fallback, wenn das gewählte Modell-Backend nicht verfügbar ist.
 - **„Nur lokal“-Schalter**, der Anfragen an konfigurierte entfernte Modell- und Agenten-Endpunkte blockiert.
-- **Installation beim Start:** Wird LM Studio (Headless-Daemon + `lms`-CLI) oder Hermes auf diesem Rechner nicht gefunden, fragt die App, ob es mit dem offiziellen Installationsskript des Herstellers installiert werden soll. Der genaue Befehl wird vorher angezeigt; ohne Bestätigung wird nichts installiert. In den Einstellungen abschaltbar.
+- **Grafische Einrichtung:** Beim ersten Start Pi oder Hermes, LM Studio, Strata und Modell-/API-Endpunkte auswählen. Über das App- oder Tray-Menü erneut aufrufbar. Fehlende ausgewählte Komponenten können nach Bestätigung mit ihrem offiziellen Skript installiert werden.
 - **Rechtsklick-Einstellungen** im Overlay für alle Endpunkte, Schlüssel und Optionen.
 - **Mehrsprachige Oberfläche:** Englisch und Deutsch, in den Einstellungen auswählbar oder automatisch anhand der Systemsprache erkannt. Nicht unterstützte Sprachen fallen auf Englisch zurück.
 
@@ -38,7 +38,11 @@ Ein per Tastenkombination aufrufbares Overlay für GNOME unter Ubuntu und Arch-b
 | 4. Parameter | Kontextlänge (begrenzt durch das Modellmaximum), Temperatur und maximale Tokens pro Stufe |
 | 5. Laden | LM Studio kann Modelle über `lms` laden; Strata verwaltet das Laden selbst |
 
-In den Einstellungen lässt sich das Routing überschreiben: immer das ausgewählte lokale Backend, immer der ausgewählte Agent oder immer ein bestimmter externer Anbieter.
+Die Einrichtung wählt für normale Modellanfragen **Lokal, dann LAN, dann Internet**. Aktivierte Endpunkte werden in dieser Reihenfolge versucht; ein Wechsel erfolgt nur bei einem Fehler vor der ersten Ausgabe. Ein in der Einrichtung gewählter LAN-Anbieter gilt auch mit Hostnamen als LAN; andere Hostnamen gelten als Internet. Der Nur-lokal-Modus blockiert weiterhin LAN und Internet. Bildanfragen verwenden nur konfigurierte Modell-Backends mit bekannter Bildunterstützung.
+
+Bei Agentenaufgaben mit konfiguriertem Pi-Endpunkt versucht das Prioritätsrouting verfügbare Modellendpunkte ebenfalls in dieser Reihenfolge und verwendet für jeden Versuch Pi. Nach Textausgabe, Werkzeugaktivität, einem ungültigen Ereignis oder einem unklaren Prozessfehler wird nicht erneut versucht. Bei diesen Versuchen sind Pi-Erweiterungen und MCP deaktiviert. Hermes verwaltet seine Modelle und seinen internen Fallback selbst; die Bridge kann dort weder diese Reihenfolge noch die Werkzeuggrenze durchsetzen.
+
+In den Einstellungen lässt sich das Routing ändern: automatisch, Lokal/LAN/Internet-Priorität, immer das ausgewählte Modell-Backend, immer der ausgewählte Agent oder immer ein bestimmter externer Anbieter.
 
 **Agenten-Stichwörter:** Eine Anfrage geht an den ausgewählten Agenten, wenn sie ein Wort oder eine Wortgruppe aus der eingebauten Liste typischer Benutzeraktionen enthält. Beim Abgleich werden die deutsche und englische Liste genutzt; die Einstellungen zeigen die aktuelle Oberflächensprache. Die Listen sind per Rechtsklick → **Einstellungen…** → **Agenten-Stichwörter** editierbar (ein Eintrag pro Zeile; ein `*` am Ende erfasst auch längere Formen).
 
@@ -52,21 +56,18 @@ In den Einstellungen lässt sich das Routing überschreiben: immer das ausgewäh
 ## Installation
 
 ```bash
-sudo apt install python3-gi gir1.2-gtk-4.0 pipx
 git clone https://github.com/datenklo/lms-hermes-bridge.git
 cd lms-hermes-bridge
 ./install.sh
 ```
 
-Unter Arch Linux und CachyOS stattdessen die Systemabhängigkeiten installieren:
+Unter Ubuntu/Debian und Arch/CachyOS prüft das Installationsskript im Terminal die Systempakete, zeigt fehlende Pakete sowie den `sudo apt-get`- beziehungsweise `sudo pacman`-Befehl an und fragt vor der Installation nach Zustimmung. Bei Ablehnung oder einem Installationsfehler bricht es ab. Dieser Terminalschritt läuft vor der grafischen Einrichtung, damit GTK und PyGObject zuerst installiert werden können. Für den Start werden Git und ein Terminal benötigt.
 
-```bash
-sudo pacman -S python-gobject gtk4 python-pipx xorg-xwayland libx11 gnome-terminal xdg-desktop-portal-gnome
-```
-
-Danach das Repository wie oben klonen und `./install.sh` ausführen. Für das Trayicon eine GNOME-Shell-Erweiterung für AppIndicator / StatusNotifierItem aktivieren. Der globale Shortcut benötigt eine GNOME-Sitzung; die Fensterplatzierung unter Wayland benötigt XWayland und `DISPLAY`.
+Die Tray-Erweiterung mit `gnome-extensions enable appindicatorsupport@rgcjonas.gmail.com` aktivieren (falls GNOME die frisch installierte Erweiterung nicht findet, zuerst ab- und wieder anmelden). Alternativ kann ein anderer StatusNotifierItem-Host verwendet werden. Der globale Shortcut benötigt eine GNOME-Sitzung; die Fensterplatzierung unter Wayland benötigt XWayland und `DISPLAY`.
 
 `install.sh` installiert die App mit `pipx` (mit System-Site-Packages für PyGObject), fügt **LMS Hermes Bridge** mit Gehirn-Icon zum Anwendungsmenü hinzu, übernimmt die Autostart-Einstellung nach der Anmeldung und registriert die Standard-Tastenkombination als GNOME-Shortcut. Der Autostart lässt sich später unter Rechtsklick → **Einstellungen…** → **Allgemein** ändern.
+
+Zur Deinstallation unter **Einstellungen…** auf **Deinstallieren…** klicken und bestätigen. Die App entfernt ihre pipx-Installation, Tastenkombination, Autostart und Anwendungsmenüeintrag und beendet sich. Konfiguration einschließlich API-Schlüsseln, Systempakete, andere Komponenten und der Git-Checkout bleiben erhalten.
 
 Ohne Installation starten: `PYTHONPATH=src python3 -m lms_hermes_bridge`
 
@@ -74,9 +75,9 @@ Ohne Installation starten: `PYTHONPATH=src python3 -m lms_hermes_bridge`
 
 Rechtsklick auf das Overlay oder das Trayicon, dann **Einstellungen…**:
 
-Für [Strata](https://github.com/Niko1221/Strata) statt LM Studio zuerst ein Modell mit Strata starten (zum Beispiel `strata launch`), unter **Allgemein** als lokales Modell-Backend **Strata** wählen und unter **Strata** Server-URL und optionalen API-Schlüssel eintragen. Bildunterstützung dort nur aktivieren, wenn das bereitgestellte Modell Bilder verarbeiten kann. Strata verwaltet das Laden seiner Modelle selbst; die LM-Studio-Ladeeinstellungen gelten dafür nicht.
+Für [Strata](https://github.com/Niko1221/Strata) statt LM Studio unter **Allgemein** als lokales Modell-Backend **Strata** wählen und unter **Strata** Server-URL und optionalen API-Schlüssel eintragen. Beim nächsten Start bietet die App den offiziellen Installer für ein fehlendes lokales Strata nur an, wenn eine GPU mit mehr als 11 GiB dediziertem VRAM erkannt wird. Kann der Speicher nicht bestimmt werden, wird keine Installation angeboten. Ein Modell mit Strata starten (zum Beispiel `strata launch`); Bildunterstützung nur aktivieren, wenn das Modell Bilder verarbeiten kann. Entfernte Strata-Server werden separat konfiguriert und benötigen keine lokale GPU.
 
-Für [Pi](https://pi.dev/) statt Hermes Pi installieren, unter **Allgemein** als Agenten-Harness auswählen und unter **Pi** aktivieren. Dort Programm und Arbeitsverzeichnis festlegen; Modell und Anbieter sind optional, andernfalls verwendet Pi seine eigene Konfiguration. Für die Verbindung zu Strata `strata connect pi` verwenden und Pi separat konfigurieren. Pi kann Werkzeuge ausführen und Dateien im Arbeitsverzeichnis verändern. Im Nur-lokal-Modus ist Pi nicht verfügbar, da die Bridge die Netzwerkzugriffe des Pi-Anbieters und seiner Werkzeuge nicht prüfen kann.
+Für [Pi](https://pi.dev/) statt Hermes unter **Einrichtung…** eine OpenAI-kompatible Modell-API-Basis-URL (üblicherweise mit `/v1` am Ende), ein Modell und optional einen Schlüssel eintragen. Ohne LM Studio muss die Pi-URL entfernt sein. Die Bridge startet Pi für diesen Endpunkt mit einer isolierten temporären Agentenkonfiguration; bestehende Pi-Einstellungen, Erweiterungen und Zugangsdaten werden dabei nicht geladen. Pi kann Werkzeuge ausführen und Dateien im Arbeitsverzeichnis verändern. Im Nur-lokal-Modus ist Pi nicht verfügbar, da die Bridge die Netzwerkzugriffe des Pi-Anbieters und seiner Werkzeuge nicht prüfen kann.
 
 Der Nur-lokal-Modus blockiert konfigurierte entfernte API-Endpunkte, kann aber Netzwerkzugriffe von Agentenwerkzeugen, eigenen Befehlen, dem Backend selbst oder anderen App-Funktionen wie der Update-Prüfung nicht einschränken.
 

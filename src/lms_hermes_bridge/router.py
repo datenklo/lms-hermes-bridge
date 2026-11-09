@@ -2,8 +2,10 @@
 
 Pure functions, no I/O, so everything here is unit-testable.
 """
+import ipaddress
 import re
 from dataclasses import dataclass, field
+from urllib.parse import urlparse
 
 from .config import DEFAULT_AGENT_KEYWORDS
 from .keywords import compile_keywords
@@ -30,6 +32,24 @@ TIER_PARAMS = {
     "code": {"context": 16384, "temperature": 0.2, "max_tokens": 4096},
     "agent": {"context": 8192, "temperature": 0.4, "max_tokens": 4096},
 }
+
+
+def endpoint_scope(endpoint: str) -> str:
+    try:
+        hostname = (urlparse(endpoint).hostname or "").lower().rstrip(".")
+    except ValueError:
+        return "wan"
+    if hostname == "localhost":
+        return "local"
+    try:
+        address = ipaddress.ip_address(hostname)
+    except ValueError:
+        return "wan"
+    if address.is_loopback:
+        return "local"
+    if address.is_private or address.is_link_local:
+        return "lan"
+    return "wan"
 
 
 @dataclass
@@ -123,6 +143,42 @@ def agent_route(cfg: dict, reason: str) -> Route | None:
     if cfg["hermes"]["enabled"] and (not cfg["local_only"] or _is_local(cfg["hermes"]["endpoint"])):
         return Route("hermes", "agent", reason, cfg["hermes"]["model"])
     return None
+
+
+def priority_routes(prompt: str, cfg: dict, model_lists: dict, mem_bytes: int,
+                    needs_image: bool = False) -> list[Route]:
+    tier, reason = classify(prompt, cfg.get("agent_keywords"))
+    candidates = []
+    for backend in ("lmstudio", "strata"):
+        settings = cfg[backend]
+        if not settings.get("enabled", backend == cfg.get("local_backend", "lmstudio")):
+            continue
+        scope = endpoint_scope(settings["url"])
+        if cfg["local_only"] and scope != "local":
+            continue
+        preferred = cfg["lmstudio"].get("preferred_vision", "") if needs_image else cfg["lmstudio"].get(
+            f"preferred_{'balanced' if tier == 'agent' else tier}", "")
+        available = model_lists.get(backend) or []
+        if backend == "lmstudio" and scope != "local":
+            available = [model for model in available if model.loaded]
+        model = pick_model(available, tier, mem_bytes, preferred, require_vision=needs_image)
+        if model:
+            params = dict(TIER_PARAMS[tier])
+            params.update(context=min(params["context"], model.max_context), supports_vision=model.supports_vision,
+                          supports_thinking=model.supports_thinking, supports_tools=model.supports_tools)
+            candidates.append((scope, Route(backend, tier, reason, model.key, params=params,
+                                            needs_load=backend == "lmstudio" and not model.loaded)))
+    if not needs_image:
+        for provider in cfg["providers"]:
+            if not provider.get("enabled", True):
+                continue
+            scope = provider.get("scope") if provider.get("scope") in ("lan", "wan") else endpoint_scope(
+                provider.get("endpoint", ""))
+            if cfg["local_only"] and scope != "local":
+                continue
+            candidates.append((scope, Route("provider", tier, reason, provider["model"], provider["id"])))
+    order = {"local": 0, "lan": 1, "wan": 2}
+    return [route for _scope, route in sorted(candidates, key=lambda item: order[item[0]])]
 
 
 def decide(prompt: str, cfg: dict, models: list[ModelInfo] | None, mem_bytes: int,
