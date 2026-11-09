@@ -377,7 +377,7 @@ class BridgeWindow(Gtk.ApplicationWindow):
         if cfg.get("local_backend", "lmstudio") == "lmstudio" and models is None and (route is None or route.reason == "LM Studio unavailable"):
             self._ui(self._status, t("starting", name="LM Studio"))
             if services.ensure(cfg, "lmstudio"):
-            models = self._local_models()
+                models = self._local_models()
                 route = router.decide(prompt, cfg, models, lmstudio.mem_total_bytes(), needs_image=needs_image)
         if route and route.backend == "hermes":
             self._ensure_hermes()
