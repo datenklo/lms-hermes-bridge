@@ -3,9 +3,22 @@
 All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- Arch Linux and CachyOS GNOME/Wayland setup instructions and terminal fallback.
+- Configurable Strata model backend and Pi agent harness alongside LM Studio and Hermes.
+- System-language detection and selectable English/German interface, including tray menu refresh.
+
+### Changed
+
+- Local-only mode rejects configured remote model and agent endpoints and disables Pi; it is not a network sandbox for tools or other processes.
+
 ## [0.4.1] - 2026-10-25
 
 ### Added
+
 - Editable, separately stored German/English system prompts with the supplied fact-grounded defaults and per-language reset.
 
 - Configurable periodic GitHub update checks; menus switch to “Update now” and show a blue status dot when `origin/main` is ahead. Checks only fetch metadata; installation still requires confirmation.
@@ -16,22 +29,26 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 ## [0.4.0] - 2026-10-25
 
 ### Added
+
 - Desktop context input for clipboard text, primary-selection text, image files and portal-approved screenshots. Image requests always route to local VLMs, irrespective of forced text backend. A capability popover reports image, reasoning and tool-use support; the image-file button is disabled unless the loaded model supports vision. Users can load an installed VLM in the overlay and configure auto-loading/preferred vision model.
 
 ## [0.3.1] - 2026-10-25
 
 ### Added
+
 - General settings now include an opt-in/out login autostart switch; changes create or remove only this app's GNOME autostart entry. The installer respects the stored setting.
 - Installer adds an Ubuntu Applications-menu launcher with the brain icon.
 - Built-in desktop routines open the browser, home folder, Downloads, terminal, calculator and GNOME system settings without Hermes. The fixed commands can be disabled and their keywords extended in the routines table.
 
 ### Fixed
+
 - Google search requests now open the default browser directly with the extracted query instead of relying on Hermes' disabled browser toolset.
 - Keyword patterns now allow `*` on any word in a multi-word phrase (for example `öffne* browser`).
 
 ## [0.3.0] - 2026-10-25
 
 ### Added
+
 - **Routines table** in the settings: every routine has keywords and an action. Users can define their own rows
   (show text, run program without a shell, open URL, send to Hermes, ask the model with a prompt template;
   placeholders `{input}`, `{prompt}`, `{home}`, `{date}`, `{time}`). Built-in rows can be disabled or extended with
@@ -50,11 +67,13 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - Minimal, modern look: flat search field with icon, animated answer area, rounded corners, calmer settings window.
 
 ### Changed
+
 - `agent_keywords` is now `{en, de}`; old flat lists are migrated. The two `routine_weather`/`routine_help` flags
   moved into the routines table and are migrated too.
 - Hermes routing no longer uses a hard-coded pattern; the list lives in the config.
 
 ### Fixed
+
 - The global hotkey did nothing when the app was started from a source checkout: the stored shortcut command lacked
   `PYTHONPATH`. The command is now self-contained, repaired automatically at app start and registered when the
   settings are saved (not only via the button).
@@ -62,14 +81,17 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 ## [0.2.0] - 2026-10-25
 
 ### Added
+
 - Startup check for LM Studio and Hermes; if missing (and the configured endpoint is local), the app offers to run the official install script after confirmation. Switchable in the settings.
 
 ### Documentation
+
 - German technical documentation (`docs/TECHNICAL.de.md`) and cross-links between language versions.
 
 ## [0.1.0] - 2026-10-25
 
 ### Added
+
 - Overlay window with global hotkey (GNOME custom shortcut, default `Ctrl+Alt+Space`).
 - Automatic routing between LM Studio models by task tier (`fast`, `balanced`, `deep`, `code`, `agent`) with per-tier parameters and automatic model loading via the `lms` CLI.
 - Hermes integration via its OpenAI-compatible API.

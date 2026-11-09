@@ -4,7 +4,7 @@
 
 ## Überblick
 
-Einprozess-Anwendung in Python (GTK 4 über PyGObject, nur Standardbibliothek). Eine `Gtk.Application` mit `HANDLES_COMMAND_LINE` hält eine primäre Instanz am Leben (`hold()`); jeder weitere Start (die Tastenkombination führt denselben Befehl aus) wird an die primäre Instanz weitergereicht, die das Overlay ein- oder ausblendet.
+Python-Desktopanwendung (GTK 4 über PyGObject und die Standardbibliothek). Eine `Gtk.Application` mit `HANDLES_COMMAND_LINE` hält eine primäre Instanz am Leben (`hold()`); jeder weitere Start (die Tastenkombination führt denselben Befehl aus) wird an die primäre Instanz weitergereicht, die das Overlay ein- oder ausblendet. Pi und andere externe Programme laufen als separate Prozesse.
 
 ```mermaid
 flowchart LR
@@ -13,10 +13,15 @@ flowchart LR
     subgraph APP[Primäre Instanz]
         WIN[BridgeWindow] --> RT[router.decide]
         RT --> LMS[lmstudio.py]
+        RT --> STR[strata.py]
+        RT --> PI[pi_harness.py]
         RT --> PRV[providers.py]
         SET[SettingsWindow] --> CFG[config.py]
     end
     LMS -->|REST + lms CLI| LMSTUDIO[(LM Studio)]
+    STR -->|Modellerkennung| STRATA[(Strata)]
+    PRV -->|SSE-Streaming| STRATA
+    PI -->|JSONL-Unterprozess| AGENT[Pi]
     PRV -->|SSE-Streaming| HERMES[(Hermes)]
     PRV -->|SSE-Streaming| EXT[(Claude / OpenAI / GitHub Models)]
 ```
@@ -28,19 +33,20 @@ flowchart LR
 | `app.py` | `BridgeApp` (Einzelinstanz, Aktionen, Kommandozeile `--background`), `BridgeWindow` (Overlay, Rechtsklick-Menü, Worker-Thread), Über- und Update-Dialog |
 | `router.py` | Reine Entscheidungslogik: `classify`, `pick_model`, `decide`, `TIER_PARAMS`. Keine Ein-/Ausgabe |
 | `lmstudio.py` | Modellerkennung (`GET /api/v0/models`, `lms ls --json` für Größen), `lms load/unload`, RAM-Erkennung |
+| `strata.py` | Modellerkennung über Stratas OpenAI-kompatibles `GET /v1/models`; Bildunterstützung wird explizit konfiguriert |
+| `pi_harness.py` | Startet Pi als Unterprozess im JSON-Modus, streamt Text, meldet Fehler und beendet den Prozess bei Abbruch |
 | `desktop_context.py` | Zwischenablage-/Bildvalidierung und Screenshot-Aufnahme über das XDG-Screenshot-Portal, Bildlimit 16 MB |
 | `updater.py` | Periodischer Fetch-/Commit-Abstandscheck; findet den pipx-Quellcheckout über PEP 610, prüft das offizielle GitHub-Remote, lehnt dirty/nicht-main Checkouts ab, zieht per Fast-Forward und installiert mit pipx neu |
 | `update_window.py` | Bestätigungs-/Fortschrittsfenster; Neustart wird nur nach erfolgreicher Neuinstallation angeboten |
 | `providers.py` | Streaming-Clients: OpenAI-kompatibel (`/chat/completions`) und Anthropic (`/v1/messages`), SSE-Parsing, `ChatError` |
 | `config.py` | JSON-Konfiguration in `~/.config/lms-hermes-bridge/config.json` (Rechte `0600`), Standardwerte, tiefes Zusammenführen, Anbieter-Vorlagen |
 | `system_prompts.py` | Deutsche und englische Standardanweisungen; wählt den Prompt der eingestellten Sprache mit Standard-Fallback |
-| `settings_dialog.py` | Einstellungsfenster mit Reitern (Allgemein, Systemprompt, LM Studio, Hermes, Routinen, Externe Modelle) |
+| `settings_dialog.py` | Einstellungen für Sprache, Backends, Agenten, Routinen, Stichwörter und externe Anbieter |
 | `tray.py` | StatusNotifierItem + `com.canonical.dbusmenu` über `Gio.DBusConnection` |
 | `hotkey.py` | Registriert einen GNOME-Shortcut über `gsettings` (`Gio.Settings`) |
 | `services.py` | Startet den lokalen LM-Studio-Server (`lms server start`, Ausweichen auf `lms daemon up`) und das Hermes-Gateway (`hermes gateway start`), wenn deren Health-Check fehlschlägt, und wartet dann auf die Antwort. Überspringt entfernte URLs, nicht installierte Programme und die abgeschaltete Einstellung |
-| `placement.py` | Verschiebt das Overlay per `XMoveWindow` (ctypes) an den oberen Rand in der Mitte; braucht das X11-Backend, das `__init__.py` in Wayland-Sitzungen wählt |
 | `placement.py` | Verschiebt das Overlay per `XMoveWindow` (ctypes) nach oben mittig und fordert EWMH `_NET_WM_STATE_ABOVE` an; braucht das X11-Backend, das `__init__.py` in Wayland-Sitzungen wählt |
-| `keywords.py` | Kompiliert Stichwortlisten (ganze Wörter, `*` am Ende für Wortformen, Füllartikel); gemeinsam genutzt von Hermes-Router und Routinen-Tabelle |
+| `keywords.py` | Kompiliert Stichwortlisten (ganze Wörter, `*` am Ende für Wortformen, Füllartikel) für Agenten-Routing und Routinen-Tabelle |
 | `routines.py` | Eingebaute Antworten vor dem Routing: Wetter (Datumsparser, Ortserkennung, Open-Meteo-Geocoding und -Vorhersage, WMO-Texte) und Hilfe (starke/schwache Auslöser, Themenabgleich, Live-Statusabfrage). `fetch`/`probe` sind für Tests austauschbar |
 | `installer.py` | Erkennt ein fehlendes lokales LM Studio / Hermes (entfernte Endpunkte werden ignoriert) und führt das offizielle Installationsskript (`curl -fsSL <url> \| bash`) in einem Thread aus, mit Live-Ausgabe; nach LM Studio folgt `lms server start` |
 | `install_window.py` | Modales Fortschrittsfenster mit Live-Log der Installation |
@@ -50,16 +56,16 @@ flowchart LR
 
 1. Kontext-Schaltflächen erfassen Zwischenablage, Primärauswahl, Bilddateien oder einen im XDG-Desktop-Portal bestätigten Screenshot. Der Kontext erscheint neben dem Eingabefeld und wird beim Absenden mitgeschickt.
 2. `Enter` im Overlay startet einen Daemon-Thread (`_worker`); ein `threading.Event` bricht den vorherigen Stream ab.
-3. `lmstudio.list_models` holt Typ- und Fähigkeitsmetadaten. `None` bedeutet: Server nicht erreichbar.
-4. Bei Bildeingabe filtert `router.decide(..., needs_image=True)` ausschließlich Vision-Modelle; Bilder werden nie stillschweigend an ein Textmodell geleitet. Automatisches Nachladen steuert `lmstudio.auto_load_vision_model`, `preferred_vision` kann einen Modell-Key festlegen.
-5. Ist das Modell nicht geladen und das automatische Laden aktiv, läuft `lms load` (optional nach `lms unload --all`).
-6. Der Client sendet OpenAI-Bilddaten-URL-Blöcke; der Anthropic-Client wandelt sie in Base64-Quellblöcke der Messages-API um. SSE-Text gelangt per `GLib.idle_add` in den UI-Thread.
+3. Das gewählte Backend ermittelt Modelle über `lmstudio.list_models` oder `strata.list_models`; `None` bedeutet, dass die Erkennung fehlgeschlagen ist. Bei Strata bestimmt der konfigurierte Vision-Schalter die Bildunterstützung.
+4. Bei Bildeingabe wählt `router.decide(..., needs_image=True)` ein lokales Vision-Modell. LM Studio kann ein bevorzugtes Vision-Modell automatisch laden; Strata verwaltet das Laden selbst.
+5. LM Studio kann ein nicht geladenes Modell über `lms load` laden (optional nach `lms unload --all`). Von Strata gemeldete Modelle gelten als geladen.
+6. OpenAI-kompatible und Anthropic-Clients streamen SSE; Pi läuft im JSON-Modus und erhält den Prompt über stdin. Text gelangt per `GLib.idle_add` in den UI-Thread.
 
 Alle UI-Änderungen passieren im GTK-Hauptthread; der Worker-Code greift nie direkt auf Widgets zu.
 
 ## Routinen-Tabelle
 
-`config["routines"]` ist eine Liste von Zeilen `{id, name, enabled, keywords, action, value}`. `routines.handle()` prüft zuerst eigene Zeilen (von oben nach unten), dann eingebaute Routinen. Wetter/Hilfe nutzen ihre eigene Erkennung plus optionale Zusatz-Stichwörter. Die Google-Zeile öffnet eine kodierte Suche per `xdg-open`; feste Desktop-Zeilen öffnen Browser, Home-/Downloads-Ordner, Terminal, Rechner oder GNOME-Systemeinstellungen. Diese Befehle verwenden keine Shell. Aktionen: `answer` (Text), `command` (argv per `shlex`, Platzhalter je Argument ersetzt, ohne Shell losgelöst gestartet), `url` (`xdg-open`, nur http/https/mailto, `{input}` URL-kodiert), `hermes`/`llm` (ein `Redirect`, der den Prompt umschreibt; `hermes` erzwingt das Hermes-Backend). `config.normalize_routines()` entfernt defekte Zeilen und ergänzt fehlende eingebaute Zeilen.
+`config["routines"]` ist eine Liste von Zeilen `{id, name, enabled, keywords, action, value}`. `routines.handle()` prüft zuerst eigene Zeilen (von oben nach unten), dann eingebaute Routinen. Wetter/Hilfe nutzen ihre eigene Erkennung plus optionale Zusatz-Stichwörter. Die Google-Zeile öffnet eine kodierte Suche per `xdg-open`; feste Desktop-Zeilen öffnen Browser, Home-/Downloads-Ordner, Terminal, Rechner oder GNOME-Systemeinstellungen. Diese Befehle verwenden keine Shell. Aktionen: `answer` (Text), `command` (argv per `shlex`, Platzhalter je Argument ersetzt, ohne Shell losgelöst gestartet), `url` (`xdg-open`, nur http/https/mailto, `{input}` URL-kodiert), `hermes`/`llm` (ein `Redirect`, der den Prompt umschreibt; die bisherige Aktion `hermes` erzwingt den ausgewählten Agenten). `config.normalize_routines()` entfernt defekte Zeilen und ergänzt fehlende eingebaute Zeilen.
 
 ## Routing
 
@@ -75,7 +81,9 @@ Einordnung (`router.classify`), der erste Treffer gewinnt:
 
 Modellwahl (`router.pick_model`): Embedding-Modelle werden ignoriert; Modelle über 75 % des Gesamt-RAM werden übersprungen (außer es bleibt nichts anderes übrig); ein eingestellter Modell-Key pro Stufe hat Vorrang. Die Modellgröße stammt aus der im Key erkannten Parameterzahl (`7b`, `8x7b`), sonst aus `sizeBytes`. Bereits geladene Modelle erhalten einen Bonus.
 
-Backend (`router.decide`): erzwungene Route aus den Einstellungen, sonst `agent` → Hermes (falls aktiv), sonst LM Studio. Fallbacks bei nicht erreichbarem LM Studio: Hermes, danach der erste aktive externe Anbieter. `local_only` entfernt alle externen Anbieter; das Routing `local` weicht nie aus.
+Backend (`router.decide`): erzwungene Route aus den Einstellungen, sonst gehen `agent`-Anfragen an den ausgewählten aktivierten Agenten (Hermes oder Pi), andere Anfragen an das ausgewählte Modell-Backend (LM Studio oder Strata). Ist das Modell-Backend nicht verfügbar, folgen als Fallback der ausgewählte Agent und danach der erste aktive externe Anbieter. Das Routing `local` weicht nie aus. Bildanfragen verwenden ausschließlich ein Vision-Modell des ausgewählten Modell-Backends.
+
+`local_only` deaktiviert externe Anbieter und Pi und lehnt konfigurierte entfernte Modell- und Hermes-Endpunkte ab. Es ist keine Netzwerk-Sandbox für Agentenwerkzeuge, eigene Befehle, Backends oder Update-Prüfungen.
 
 ## Tray und D-Bus
 
@@ -104,9 +112,14 @@ Wayland erlaubt keine anwendungsweiten globalen Shortcuts. Die App registriert d
   "update_check_interval_hours": 6,
   "local_only": false,
   "routing": "auto|local|hermes|provider:<id>",
+  "local_backend": "lmstudio|strata",
+  "agent_backend": "hermes|pi",
+  "strata": { "url": "http://127.0.0.1:8080", "api_key": "", "vision": false },
+  "pi": { "enabled": false, "executable": "pi", "model": "", "provider": "", "working_directory": "~" },
   "lmstudio": { "url": "...", "auto_load": true, "unload_others": true,
                 "auto_load_vision_model": true,
-                "preferred_fast|balanced|deep|code|vision": "" },
+                "preferred_fast": "", "preferred_balanced": "", "preferred_deep": "",
+                "preferred_code": "", "preferred_vision": "" },
   "hermes": { "enabled": false, "endpoint": "...", "api_key": "", "model": "" },
   "providers": [ { "id": "", "name": "", "kind": "openai|anthropic",
                    "endpoint": "", "api_key": "", "model": "", "enabled": true } ],
@@ -122,6 +135,8 @@ Wayland erlaubt keine anwendungsweiten globalen Shortcuts. Die App registriert d
 
 Geschrieben wird atomar (temporäre Datei + `os.replace`). API-Schlüssel liegen im Klartext; die Datei ist nur für den Besitzer lesbar.
 
+Der bisherige Wert `routing: "hermes"` wählt den konfigurierten Agenten und erhält die Kompatibilität bestehender Einstellungen. Die Sprache `auto` folgt der System-Locale und fällt auf Englisch zurück.
+
 Der Schalter unter „Allgemein“ erstellt oder entfernt beim Speichern sofort `~/.config/autostart/lms-hermes-bridge.desktop`. Der Installer übernimmt den gespeicherten Wert `start_on_login`.
 
 Automatische Update-Prüfungen nutzen `updater.updates_available()` beim Start und im konfigurierten Intervall. Dabei laufen nur `git fetch` und `git rev-list`; wenn `origin/main` voraus ist, aktualisieren App- und Tray-Menü Beschriftung/Icon. Der schreibende Teil (`git pull --ff-only` plus pipx-Neuinstallation) läuft erst nach Bestätigung.
@@ -134,10 +149,10 @@ Automatische Update-Prüfungen nutzen `updater.updates_available()` beim Start u
 
 ## Sicherheitshinweise
 
-- Der Nur-lokal-Modus deaktiviert im Router jeden externen Anbieter.
-- Endpunkt-URLs und Schlüssel stammen vom Benutzer; Anfragen gehen nur an konfigurierte Endpunkte.
+- Der Nur-lokal-Modus beschränkt konfigurierte Endpunkte, isoliert aber nicht das gesamte System vom Netzwerk; Pi ist in diesem Modus deaktiviert.
+- Pi kann Werkzeuge ausführen und Dateien im konfigurierten Arbeitsverzeichnis ändern; sein Modellanbieter wird separat konfiguriert.
 - Die Klartext-Speicherung der Schlüssel ist eine bekannte Einschränkung (siehe Roadmap: Schlüsselbund).
 
 ## Tests
 
-`tests/test_router.py` deckt Parsing, Einordnung, Modellwahl, Speichergrenzen, Fallbacks und das Hermes-Routing ab. Ausführen mit `PYTHONPATH=src python3 -m pytest`.
+Die Testsuite läuft mit `PYTHONPATH=src python3 -m pytest`. Router-, Strata- und Pi-Tests decken Auswahl, API-Verarbeitung, Streaming und Abbruch ab. Optionale Integrationstests nutzen `LMS_BRIDGE_TEST_PI=1` für ein installiertes Pi mit lokalem Testserver und `LMS_BRIDGE_TEST_GUI=1` für GTK mit funktionierendem Display.
