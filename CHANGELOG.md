@@ -5,6 +5,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-11-09
+
 ### Added
 
 - Arch Linux and CachyOS GNOME/Wayland setup instructions and terminal fallback.
@@ -103,6 +105,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - English and German user interface.
 - English and German README, technical documentation, installer script, unit tests for the routing logic.
 
+[0.5.0]: https://github.com/datenklo/lms-hermes-bridge/releases/tag/v0.5.0
 [0.4.1]: https://github.com/datenklo/lms-hermes-bridge/releases/tag/v0.4.1
 [0.4.0]: https://github.com/datenklo/lms-hermes-bridge/releases/tag/v0.4.0
 [0.3.1]: https://github.com/datenklo/lms-hermes-bridge/releases/tag/v0.3.1
