@@ -27,20 +27,28 @@ def test_tray_asks_for_the_symbolic_icon_variant():
 
 def test_has_host_is_true_only_for_the_watcher_name():
     class Conn:
+        # The real signature is pinned here on purpose: a stub with *args hides a wrong
+        # argument count, and Gio.DBusConnection.call answers that with TypeError.
         def __init__(self, names):
             self.names = names
+            self.asked = ()
 
-        def call(self, *args):
+        def call(self, destination, object_path, interface_name, method_name, parameters,
+                 reply_type, flags, timeout_msec, cancellable):
+            self.asked = (destination, object_path, interface_name, method_name)
             return GLib.Variant("(as)", (self.names,))
 
-    assert has_host(Conn(["org.freedesktop.DBus", WATCHER]))
+    conn = Conn(["org.freedesktop.DBus", WATCHER])
+    assert has_host(conn)
+    assert conn.asked == ("org.freedesktop.DBus", "/org/freedesktop/DBus", "org.freedesktop.DBus", "ListNames")
     # Our own item on the bus proves nothing: a host is the other side of the protocol.
     assert not has_host(Conn(["org.freedesktop.DBus", "org.kde.StatusNotifierItem-3229-1"]))
 
 
-def test_has_host_is_false_when_the_session_bus_is_unreachable():
+def test_has_host_is_false_when_the_bus_call_is_unusable():
     class Conn:
-        def call(self, *args):
+        def call(self, destination, object_path, interface_name, method_name, parameters,
+                 reply_type, flags, timeout_msec, cancellable):
             raise TypeError("no such method")
 
     assert not has_host(Conn())

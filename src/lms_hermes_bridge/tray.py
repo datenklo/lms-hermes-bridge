@@ -34,7 +34,8 @@ def has_host(conn: Gio.DBusConnection | None = None) -> bool:
     try:
         conn = conn or Gio.bus_get_sync(Gio.BusType.SESSION, None)
         reply = conn.call("org.freedesktop.DBus", "/org/freedesktop/DBus", "org.freedesktop.DBus",
-                          "ListNames", None, Gio.DBusCallFlags.NONE, HOST_TIMEOUT_MS, None, None, None)
+                          "ListNames", None, GLib.VariantType("(as)"), Gio.DBusCallFlags.NONE,
+                          HOST_TIMEOUT_MS, None)
     except (GLib.Error, TypeError):
         return False
     names = reply.unpack()[0] if reply is not None else ()
