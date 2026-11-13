@@ -299,9 +299,10 @@ class BridgeWindow(Gtk.ApplicationWindow):
             GLib.timeout_add(150, self._hide_if_inactive)
 
     def _hide_if_inactive(self):
-        settings_open = any(isinstance(w, SettingsWindow) and w.get_visible()
-                            for w in self.get_application().get_windows())
-        if not self.is_active() and self.get_visible() and not settings_open:
+        # Any companion window (settings, setup, install, update, about) is deliberate focus.
+        # Hiding here would additionally cancel the answer that is still streaming.
+        other_open = any(w is not self and w.get_visible() for w in self.get_application().get_windows())
+        if not self.is_active() and self.get_visible() and not other_open:
             self.cancel.set()
             self.hide()
         return False
@@ -775,6 +776,7 @@ class BridgeApp(Gtk.Application):
         self._configure_update_monitor()
         old = self.win
         self.win = BridgeWindow(self, self.cfg)
+        old.cancel.set()  # otherwise the worker keeps writing into a destroyed text buffer
         old.destroy()
         self.win.show_overlay()
 
