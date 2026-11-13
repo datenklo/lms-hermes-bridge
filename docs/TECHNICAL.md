@@ -42,10 +42,11 @@ flowchart LR
 | `config.py` | JSON config in `~/.config/lms-hermes-bridge/config.json` (mode `0600`), defaults, deep merge, provider presets |
 | `system_prompts.py` | German and English default system instructions; chooses the configured language prompt with default fallback |
 | `settings_dialog.py` | Tabbed settings for language, backends, agents, routines, keywords and external providers |
-| `tray.py` | StatusNotifierItem + `com.canonical.dbusmenu` over `Gio.DBusConnection` |
+| `tray.py` | StatusNotifierItem + `com.canonical.dbusmenu` over `Gio.DBusConnection`; `has_host()` checks for the `StatusNotifierWatcher` (without a host nothing ever draws an icon) and the symbolic icon carries the panel colour |
 | `hotkey.py` | Registers a GNOME custom keybinding through `gsettings` (`Gio.Settings`) |
 | `services.py` | Starts the local LM Studio server (`lms server start`, falling back to `lms daemon up`) and the Hermes gateway (`hermes gateway start`) when their health checks fail, then polls until they answer. Skips remote URLs, uninstalled tools and the disabled setting |
-| `placement.py` | Moves the overlay to the top centre with `XMoveWindow` and requests EWMH `_NET_WM_STATE_ABOVE`; needs the X11 backend, which `__init__.py` selects on Wayland sessions |
+| `placement.py` | Brings the overlay to the top centre: layer-shell (`Gtk4LayerShell`) on compositors that grant it to ordinary clients, otherwise `XMoveWindow` with `_NET_WM_STATE_ABOVE`; `session.py` makes the choice and `__init__.py` forces XWayland only when layer-shell is not an option |
+| `session.py` | pure, GTK-free decision which placement backend the session offers (`XDG_*`, `HYPRLAND_INSTANCE_SIGNATURE`, `SWAYSOCK`, typelib presence) |
 | `keywords.py` | Compiles keyword lists (whole words, trailing `*` for word forms, filler articles) shared by agent routing and the routines table |
 | `routines.py` | Built-in answers before any routing: weather (date phrase parser, location extraction, Open-Meteo geocoding + forecast, WMO code texts) and help (strong/weak triggers, topic matching, live status probe). `fetch`/`probe` are injectable for tests |
 | `installer.py` | Detects a missing local LM Studio / Hermes (remote endpoints are ignored) and runs the official install script (`curl -fsSL <url> \| bash`) in a thread, streaming output; after LM Studio it runs `lms server start` |
@@ -92,6 +93,7 @@ GTK 4 has no tray API, so `tray.py` exports two objects on the session bus:
 
 - `/StatusNotifierItem` (`org.kde.StatusNotifierItem`): properties (`IconName`, `IconThemePath`, `Menu`, ...), `Activate` → show overlay.
 - `/MenuBar` (`com.canonical.dbusmenu`): `GetLayout`, `GetGroupProperties`, `Event`, `EventGroup`, `AboutToShow(Group)`. The host (GNOME AppIndicator extension) shows this menu on right click.
+- The host is the other side of the protocol: `has_host()` reads the names exported by the `StatusNotifierWatcher`. Without one — GNOME without the AppIndicator extension, wlroots without a bar applet — nothing draws an icon no matter how correct the rest is. The app says so instead of failing silently: a console warning, a hint line in the overlay and a menu button in the prompt window; the settings also open with `Ctrl+,`. The icon is named `*-symbolic` because hosts recolour symbolic icons to their own foreground, which keeps it visible on a light and a dark top bar.
 
 The item registers with `org.kde.StatusNotifierWatcher` and re-registers whenever the watcher reappears. Menu labels are produced lazily, so they follow the current language.
 
