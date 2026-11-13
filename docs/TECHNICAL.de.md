@@ -165,6 +165,7 @@ Nach den Abfragen werden die bestätigten Komponentenpfade und die Bridge-Konfig
 - **Sprache:** Ein Wörterbuch zu `STRINGS` in `i18n.py` hinzufügen (fehlende Schlüssel fallen auf Englisch zurück); die Sprache erscheint automatisch in den Einstellungen.
 - **Anbietertyp:** Eine `stream_*`-Funktion in `providers.py` ergänzen, in `stream()` registrieren und `KINDS` in `settings_dialog.py` erweitern.
 - **Stufe oder Heuristik:** Die regulären Ausdrücke und `TIER_PARAMS` in `router.py` anpassen und `tests/test_router.py` erweitern.
+- **Gedankenkanal:** `max_tokens` deckt bei Denk-Modellen auch `reasoning_content` ab. Reicht das Budget nicht, endet der Stream mit `finish_reason: length` und ohne sichtbare Antwort; `providers.stream_openai` hebt dann `ChatError` statt eine leere Antwort zu liefern, damit die Kette mit Grund weiterfällt. Eine angefangene Antwort bleibt erhalten und wird nicht wiederholt.
 
 ## Sicherheitshinweise
 

@@ -165,6 +165,7 @@ After the choices, approved component paths and bridge configuration are removed
 - **Language:** add a dictionary to `STRINGS` in `i18n.py` (missing keys fall back to English); it appears in the settings automatically.
 - **Provider type:** add a `stream_*` function in `providers.py`, register it in `stream()` and extend `KINDS` in `settings_dialog.py`.
 - **Tier or heuristic:** edit the regexes and `TIER_PARAMS` in `router.py` and extend `tests/test_router.py`.
+- **Reasoning channel:** `max_tokens` also covers `reasoning_content` on thinking models. When the budget runs out inside it, the stream ends with `finish_reason: length` and no visible answer; `providers.stream_openai` raises `ChatError` instead of returning nothing, so the chain fails over with a reason. A partial answer is kept and never replayed.
 
 ## Security notes
 
