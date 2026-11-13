@@ -4,6 +4,7 @@ Left click -> Activate (show overlay), right click -> dbusmenu with the given it
 GNOME needs the AppIndicator/KStatusNotifierItem extension, which Ubuntu ships by default.
 """
 import os
+import sys
 from pathlib import Path
 
 from gi.repository import Gio, GLib
@@ -98,8 +99,13 @@ class Tray:
         Gio.bus_watch_name_on_connection(self.conn, WATCHER, Gio.BusNameWatcherFlags.NONE, self._register, None)
 
     def _register(self, conn, *_):
-        conn.call(WATCHER, "/StatusNotifierWatcher", WATCHER, "RegisterStatusNotifierItem",
-                  GLib.Variant("(s)", (self.name,)), None, Gio.DBusCallFlags.NONE, -1, None, None, None)
+        # Runs on the main loop: an infinite blocking call would freeze the UI if the
+        # watcher is registered but not answering (e.g. a shell that is still restarting).
+        try:
+            conn.call(WATCHER, "/StatusNotifierWatcher", WATCHER, "RegisterStatusNotifierItem",
+                      GLib.Variant("(s)", (self.name,)), None, Gio.DBusCallFlags.NONE, 2000, None, None, None)
+        except GLib.Error as error:
+            print(f"Tray registration failed: {error}", file=sys.stderr)
 
     def _on_get(self, _c, _sender, _path, _iface, prop):
         return self.props.get(prop)
