@@ -1,11 +1,20 @@
 """The GObject-Introspection typelib versions must be pinned before import.
 
-PyGObject warns once per unpinned namespace (`PyGIWarning: Gdk was not
-specified: version can be arbitrary`), and a warning on every single start
-is noise that hides the warnings worth reading.  The check runs in a
-subprocess with warnings escalated to errors, because the namespace is only
-unpinned on the *first* import in a process — reloading the module in the
-test process would always pass.
+PyGObject warns once per unpinned namespace on every single start
+(`PyGIWarning: Gdk was imported without specifying a version first`), and a
+warning that fires every time hides the warnings that carry information.
+
+Two measured properties of that warning decide the shape of this test:
+
+* it only surfaces on the *first* import in a process, so the check runs in a
+  subprocess — reloading the module in the test process always passes;
+* `gi.PyGIWarning` derives from `Warning`, not `UserWarning`, so
+  `-W error::UserWarning` lets it through (exit 0, warning on stderr).  The
+  catch-all `-W error` does escalate it, but it also escalates every
+  unrelated warning, which would fail the test for reasons it does not
+  describe.
+
+So the assertion is on the observable defect: the warning text in stderr.
 """
 
 from __future__ import annotations
@@ -27,10 +36,11 @@ def test_app_imports_without_pygi_warning() -> None:
     # subprocess does not inherit; hand it the source root explicitly.
     pythonpath = SRC if not os.environ.get("PYTHONPATH") else SRC + os.pathsep + os.environ["PYTHONPATH"]
     result = subprocess.run(
-        [sys.executable, "-W", "error::UserWarning", "-c", "import lms_hermes_bridge.app"],
+        [sys.executable, "-c", "import lms_hermes_bridge.app"],
         capture_output=True,
         text=True,
         timeout=120,
         env={**os.environ, "PYTHONPATH": pythonpath},
     )
     assert result.returncode == 0, result.stderr
+    assert "PyGIWarning" not in result.stderr, result.stderr
