@@ -27,14 +27,21 @@ def test_tray_asks_for_the_symbolic_icon_variant():
 
 def test_has_host_is_true_only_for_the_watcher_name():
     class Conn:
-        # The real signature is pinned here on purpose: a stub with *args hides a wrong
-        # argument count, and Gio.DBusConnection.call answers that with TypeError.
+        """Mirrors the real Gio surface: `call` is the asynchronous variant that takes a callback
+        and returns nothing, `call_sync` is the one that answers. Pinning both signatures keeps a
+        probe that picked the wrong method from passing — the earlier stub named only `call` and
+        agreed with the code, which is how a silent None went unnoticed.
+        """
+
         def __init__(self, names):
             self.names = names
             self.asked = ()
 
-        def call(self, destination, object_path, interface_name, method_name, parameters,
-                 reply_type, flags, timeout_msec, cancellable):
+        def call(self, *args):
+            return None
+
+        def call_sync(self, destination, object_path, interface_name, method_name, parameters,
+                      reply_type, flags, timeout_msec, cancellable):
             self.asked = (destination, object_path, interface_name, method_name)
             return GLib.Variant("(as)", (self.names,))
 
@@ -47,8 +54,11 @@ def test_has_host_is_true_only_for_the_watcher_name():
 
 def test_has_host_is_false_when_the_bus_call_is_unusable():
     class Conn:
-        def call(self, destination, object_path, interface_name, method_name, parameters,
-                 reply_type, flags, timeout_msec, cancellable):
+        def call(self, *args):
+            return None
+
+        def call_sync(self, destination, object_path, interface_name, method_name, parameters,
+                      reply_type, flags, timeout_msec, cancellable):
             raise TypeError("no such method")
 
     assert not has_host(Conn())
