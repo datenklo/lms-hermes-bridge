@@ -153,7 +153,10 @@ class BridgeWindow(Gtk.ApplicationWindow):
         return button
 
     def _query_model_capabilities(self):
-        models = self._local_models()
+        try:
+            models = self._local_models()
+        finally:
+            self._capabilities_refresh_running = False
         loaded = next((m for m in models or [] if m.loaded and m.is_chat), None)
         vision_models = [m for m in models or [] if m.is_chat and m.supports_vision]
         GLib.idle_add(self._set_model_capabilities, loaded, vision_models)
@@ -176,6 +179,11 @@ class BridgeWindow(Gtk.ApplicationWindow):
         return False
 
     def _refresh_model_capabilities(self):
+        # Summoning the overlay probes the backend (HTTP plus an "lms ls" subprocess);
+        # repeated summons must not stack up probes.
+        if getattr(self, "_capabilities_refresh_running", False):
+            return
+        self._capabilities_refresh_running = True
         threading.Thread(target=self._query_model_capabilities, daemon=True).start()
 
     def _update_context_status(self):
