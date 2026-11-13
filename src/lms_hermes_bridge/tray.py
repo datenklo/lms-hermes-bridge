@@ -1,18 +1,47 @@
 """System tray icon via the StatusNotifierItem D-Bus protocol (no extra dependencies).
 
 Left click -> Activate (show overlay), right click -> dbusmenu with the given items.
-GNOME needs the AppIndicator/KStatusNotifierItem extension, which Ubuntu ships by default.
+
+A tray icon needs a *host*: the panel or shell must own org.kde.StatusNotifierWatcher.
+KDE and the wlroots bars do that by themselves, GNOME only with the AppIndicator
+extension enabled, and a plain wlroots session without a bar has none at all. Use
+has_host() to find out before promising an icon; the overlay keeps its own menu button
+for the case where there is no host.
 """
 import os
+import sys
 from pathlib import Path
 
 from gi.repository import Gio, GLib
 
 ICON_DIR = str(Path(__file__).parent / "icons")
-ICON_NAME = "lms-hermes-bridge-brain"
+# "-symbolic" is the naming convention every StatusNotifier host understands: the host
+# recolours the icon to the panel's own foreground, so it stays visible on light and dark bars.
+ICON_NAME = "lms-hermes-bridge-brain-symbolic"
+APP_ICON_NAME = "lms-hermes-bridge-brain"  # full colour, used by the launcher/.desktop file
 OBJ_PATH = "/StatusNotifierItem"
 MENU_PATH = "/MenuBar"
 WATCHER = "org.kde.StatusNotifierWatcher"
+HOST_TIMEOUT_MS = 1000
+
+
+def has_host(conn: Gio.DBusConnection | None = None) -> bool:
+    """True when a tray host has registered org.kde.StatusNotifierWatcher.
+
+    Registering our own StatusNotifierItem name says nothing about this: without a host
+    the item sits on the bus and no panel ever draws it.
+    """
+    try:
+        conn = conn or Gio.bus_get_sync(Gio.BusType.SESSION, None)
+        # call_sync, not call: Gio exports the asynchronous g_dbus_connection_call() as call(),
+        # whose last argument is a callback and whose return value is None.
+        reply = conn.call_sync("org.freedesktop.DBus", "/org/freedesktop/DBus", "org.freedesktop.DBus",
+                               "ListNames", None, GLib.VariantType("(as)"), Gio.DBusCallFlags.NONE,
+                               HOST_TIMEOUT_MS, None)
+    except (GLib.Error, TypeError, AttributeError):
+        return False
+    names = reply.unpack()[0] if reply is not None else ()
+    return WATCHER in names
 
 XML = """
 <node>
@@ -98,8 +127,13 @@ class Tray:
         Gio.bus_watch_name_on_connection(self.conn, WATCHER, Gio.BusNameWatcherFlags.NONE, self._register, None)
 
     def _register(self, conn, *_):
-        conn.call(WATCHER, "/StatusNotifierWatcher", WATCHER, "RegisterStatusNotifierItem",
-                  GLib.Variant("(s)", (self.name,)), None, Gio.DBusCallFlags.NONE, -1, None, None, None)
+        # Runs on the main loop: an infinite blocking call would freeze the UI if the
+        # watcher is registered but not answering (e.g. a shell that is still restarting).
+        try:
+            conn.call(WATCHER, "/StatusNotifierWatcher", WATCHER, "RegisterStatusNotifierItem",
+                      GLib.Variant("(s)", (self.name,)), None, Gio.DBusCallFlags.NONE, 2000, None, None, None)
+        except GLib.Error as error:
+            print(f"Tray registration failed: {error}", file=sys.stderr)
 
     def _on_get(self, _c, _sender, _path, _iface, prop):
         return self.props.get(prop)

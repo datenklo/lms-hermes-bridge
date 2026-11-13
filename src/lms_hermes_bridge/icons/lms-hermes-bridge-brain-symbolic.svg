@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 64 64">
+  <!-- Symbolic variant: solid single-colour strokes, the panel recolours them to its own
+       foreground. Thicker strokes than the app icon, because panels draw it at ~22 px. -->
+  <g fill="none" stroke="#000000" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
+    <!-- left hemisphere -->
+    <path d="M31 12c-3-4-10-4-12 1-5 0-9 4-8 9-3 2-4 7-1 10-1 4 1 8 5 9 1 4 6 6 9 3 3 3 7 1 7-2V12z"/>
+    <!-- right hemisphere -->
+    <path d="M33 12c3-4 10-4 12 1 5 0 9 4 8 9 3 2 4 7 1 10 1 4-1 8-5 9-1 4-6 6-9 3-3 3-7 1-7-2V12z"/>
+    <!-- folds -->
+    <path d="M31 24c-4 0-7 2-9 5M31 36c-4 0-6 2-8 5M33 24c4 0 7 2 9 5M33 36c4 0 6 2 8 5"/>
+  </g>
+</svg>

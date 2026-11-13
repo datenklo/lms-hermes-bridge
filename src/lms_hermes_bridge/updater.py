@@ -16,8 +16,17 @@ class UpdateError(Exception):
     pass
 
 
+GIT_TIMEOUT = 120  # seconds; a hanging "git fetch" must not occupy the check thread forever
+
+
 def _git(args: list[str], repo: Path, runner=subprocess.run):
-    result = runner(["git", *args], cwd=repo, capture_output=True, text=True)
+    kwargs = {"cwd": repo, "capture_output": True, "text": True}
+    if runner is subprocess.run:  # test runners keep their own signature
+        kwargs["timeout"] = GIT_TIMEOUT
+    try:
+        result = runner(["git", *args], **kwargs)
+    except subprocess.TimeoutExpired as error:
+        raise UpdateError(f"git {args[0]} timed out after {GIT_TIMEOUT} s") from error
     if result.returncode:
         message = (result.stderr or result.stdout or "git command failed").strip()
         raise UpdateError(message)

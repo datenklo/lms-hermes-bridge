@@ -1,4 +1,5 @@
 import sys
+import os
 import subprocess
 import threading
 
@@ -13,10 +14,11 @@ from . import updater  # noqa: E402
 from .i18n import current, set_language, t  # noqa: E402
 from .install_window import InstallWindow  # noqa: E402
 from .placement import move_to_top  # noqa: E402
+from .session import choose_backend  # noqa: E402
 from .settings_dialog import SettingsWindow  # noqa: E402
 from .setup_window import SetupWindow  # noqa: E402
 from .system_prompts import for_language  # noqa: E402
-from .tray import ICON_DIR, Tray  # noqa: E402
+from .tray import ICON_DIR, Tray, has_host  # noqa: E402
 from .update_window import UpdateWindow  # noqa: E402
 
 GITHUB_URL = "https://github.com/datenklo/lms-hermes-bridge"
@@ -102,6 +104,16 @@ class BridgeWindow(Gtk.ApplicationWindow):
         self.capability_button.set_popover(self.capability_popover)
         toolbar.append(self.capability_button)
         box.append(toolbar)
+        # Only visible when the desktop has no tray host: the missing icon then explains
+        # itself and is one click away from the settings.
+        self.tray_hint = Gtk.Button(css_classes=["flat"])
+        hint_box = Gtk.Box(spacing=6)
+        hint_box.append(Gtk.Image.new_from_icon_name("dialog-warning-symbolic"))
+        hint_box.append(Gtk.Label(xalign=0, css_classes=["route"], wrap=True, label=t("tray_host_missing")))
+        self.tray_hint.set_child(hint_box)
+        self.tray_hint.connect("clicked", lambda *_: self.get_application().activate_action("settings", None))
+        self.tray_hint.set_visible(False)
+        box.append(self.tray_hint)
 
         result = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         result.append(Gtk.Separator())
@@ -132,6 +144,12 @@ class BridgeWindow(Gtk.ApplicationWindow):
         self.popover = Gtk.PopoverMenu.new_from_model(self.context_menu)
         self.popover.set_parent(box)
         self.popover.set_has_arrow(False)
+        # A visible control for the same menu. Right-click alone is useless without a tray
+        # icon, and nobody finds it by accident.
+        self.menu_button = Gtk.MenuButton(icon_name="open-menu-symbolic", css_classes=["flat"],
+                                          tooltip_text=t("menu"))
+        self.menu_button.set_popover(Gtk.PopoverMenu.new_from_model(self.context_menu))
+        toolbar.append(self.menu_button)
         self.entry.set_placeholder_text(t("placeholder"))
 
         self.connect("notify::is-active", self._on_active)
@@ -147,13 +165,19 @@ class BridgeWindow(Gtk.ApplicationWindow):
         self.context_menu.append(t("about"), "app.about")
         self.context_menu.append(t("quit"), "app.quit")
 
+    def show_tray_hint(self, show: bool) -> None:
+        self.tray_hint.set_visible(show)
+
     def _icon_button(self, icon: str, tooltip: str, callback) -> Gtk.Button:
         button = Gtk.Button(icon_name=icon, css_classes=["flat"], tooltip_text=t(tooltip))
         button.connect("clicked", callback)
         return button
 
     def _query_model_capabilities(self):
-        models = self._local_models()
+        try:
+            models = self._local_models()
+        finally:
+            self._capabilities_refresh_running = False
         loaded = next((m for m in models or [] if m.loaded and m.is_chat), None)
         vision_models = [m for m in models or [] if m.is_chat and m.supports_vision]
         GLib.idle_add(self._set_model_capabilities, loaded, vision_models)
@@ -176,6 +200,11 @@ class BridgeWindow(Gtk.ApplicationWindow):
         return False
 
     def _refresh_model_capabilities(self):
+        # Summoning the overlay probes the backend (HTTP plus an "lms ls" subprocess);
+        # repeated summons must not stack up probes.
+        if getattr(self, "_capabilities_refresh_running", False):
+            return
+        self._capabilities_refresh_running = True
         threading.Thread(target=self._query_model_capabilities, daemon=True).start()
 
     def _update_context_status(self):
@@ -291,9 +320,10 @@ class BridgeWindow(Gtk.ApplicationWindow):
             GLib.timeout_add(150, self._hide_if_inactive)
 
     def _hide_if_inactive(self):
-        settings_open = any(isinstance(w, SettingsWindow) and w.get_visible()
-                            for w in self.get_application().get_windows())
-        if not self.is_active() and self.get_visible() and not settings_open:
+        # Any companion window (settings, setup, install, update, about) is deliberate focus.
+        # Hiding here would additionally cancel the answer that is still streaming.
+        other_open = any(w is not self and w.get_visible() for w in self.get_application().get_windows())
+        if not self.is_active() and self.get_visible() and not other_open:
             self.cancel.set()
             self.hide()
         return False
@@ -312,14 +342,22 @@ class BridgeWindow(Gtk.ApplicationWindow):
         self.popover.popup()
 
     def show_overlay(self):
+        backend = self._placement_backend()
+        if backend == "layer-shell":
+            # A layer surface has to be configured before its first map, unlike an X11
+            # window, which can only be moved once it exists (see _place).
+            move_to_top(self, backend=backend)
         self.present()
         self.entry.grab_focus()
         self.entry.select_region(0, -1)
         self._refresh_model_capabilities()
         GLib.timeout_add(40, self._place)  # the surface must be mapped before it can be moved
 
+    def _placement_backend(self) -> str:
+        return choose_backend(os.environ, self.cfg.get("window_placement", "auto"))
+
     def _place(self):
-        move_to_top(self, keep_above=True)
+        move_to_top(self, keep_above=True, backend=self._placement_backend())
         return False
 
     def _keep_above(self, *_):
@@ -328,7 +366,7 @@ class BridgeWindow(Gtk.ApplicationWindow):
 
     def _raise_above(self):
         if self.get_visible():
-            move_to_top(self, keep_above=True)
+            move_to_top(self, keep_above=True, backend=self._placement_backend())
         return False
 
     # -- query flow -----------------------------------------------------
@@ -552,7 +590,9 @@ class BridgeWindow(Gtk.ApplicationWindow):
             system = next((message["content"] for message in messages if message["role"] == "system"), "")
             prompt = next(message["content"] for message in messages if message["role"] == "user")
             return pi_harness.stream(cfg["pi"], prompt, system, cancel)
-        p = next(p for p in cfg["providers"] if p["id"] == route.provider_id)
+        p = next((p for p in cfg["providers"] if p["id"] == route.provider_id), None)
+        if p is None:  # the provider was removed from the settings after this route was decided
+            raise providers.ChatError(f"provider '{route.provider_id}' is not configured")
         return providers.stream(p["kind"], p["endpoint"], p["api_key"], p["model"], messages,
                                 router.TIER_PARAMS[route.tier])
 
@@ -564,6 +604,7 @@ class BridgeApp(Gtk.Application):
         self.needs_setup = not cfgmod.CONFIG_FILE.exists()
         self.win: BridgeWindow | None = None
         self.update_available = False
+        self.tray_host_missing = False
         self._update_timer = 0
         self._update_check_running = False
         self.add_main_option("background", 0, GLib.OptionFlags.NONE, GLib.OptionArg.NONE, "Start hidden", None)
@@ -580,6 +621,9 @@ class BridgeApp(Gtk.Application):
             act = Gio.SimpleAction.new(name, None)
             act.connect("activate", cb)
             self.add_action(act)
+        # Ctrl+, opens the settings, the convention every GNOME app uses. Needed because a
+        # desktop without a tray host has no other way in when the overlay is closed.
+        self.set_accels_for_action("app.settings", ("<Control>comma",))
         self.hold()  # stay alive while the overlay is hidden
         hotkey.refresh_command()
         try:
@@ -590,8 +634,15 @@ class BridgeApp(Gtk.Application):
                                            (lambda: t("about"), self.open_about),
                                            (lambda: t("quit"), self.quit)])
             self.tray.start()
+            # Registered on the bus is not the same as visible: GNOME without the
+            # AppIndicator extension has no watcher, so nothing would ever draw the icon.
+            self.tray_host_missing = not has_host()
         except Exception:
             self.tray = None  # no D-Bus session: run without tray icon
+            self.tray_host_missing = True
+        if self.tray_host_missing:
+            print("No StatusNotifierWatcher on the session bus, so there is no tray host; "
+                  "the overlay menu button and Ctrl+, reach the settings instead.", file=sys.stderr)
         self._configure_update_monitor()
 
     def update_menu_text(self):
@@ -767,6 +818,7 @@ class BridgeApp(Gtk.Application):
         self._configure_update_monitor()
         old = self.win
         self.win = BridgeWindow(self, self.cfg)
+        old.cancel.set()  # otherwise the worker keeps writing into a destroyed text buffer
         old.destroy()
         self.win.show_overlay()
 

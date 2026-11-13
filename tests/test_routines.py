@@ -270,13 +270,24 @@ def test_google_builtin_can_be_disabled():
     assert not launched
 
 
+def test_arch_terminal_without_debian_alias_is_found(monkeypatch):
+    """CachyOS/Arch ships no "x-terminal-emulator"; the fallback must know Arch terminals."""
+    available = {"alacritty"}
+    monkeypatch.setattr(routines.shutil, "which", lambda name: name if name in available else None)
+    launched = []
+    routines.run_custom({"id": "builtin:terminal", "name": "Terminal", "action": "command",
+                         "value": "x-terminal-emulator"}, "", None, "de",
+                        launcher=launched.append, input_override="")
+    assert launched == [["alacritty"]]
+
+
 def test_simple_desktop_actions_do_not_need_hermes(monkeypatch):
     from pathlib import Path
     monkeypatch.setattr(routines.shutil, "which", lambda name: name if name == "x-terminal-emulator" else None)
     cases = [
         ("Öffne den Browser", ["xdg-open", "https://www.google.com/"]),
         ("Öffne den Home-Ordner", ["xdg-open", str(Path.home())]),
-        ("Öffne Downloads", ["xdg-open", str(Path.home() / "Downloads")]),
+        ("Öffne Downloads", ["xdg-open", str(Path.home()) + "/Downloads"]),
         ("Öffne Terminal", ["x-terminal-emulator"]),
         ("Öffne Rechner", ["gnome-calculator"]),
         ("Öffne Systemeinstellungen", ["gnome-control-center"]),

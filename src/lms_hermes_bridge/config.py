@@ -25,8 +25,11 @@ PROVIDER_PRESETS = {
     "copilot": {
         "name": "Copilot (GitHub Models)",
         "kind": "openai",
-        "endpoint": "https://models.github.ai/inference/chat/completions",
-        "model": "openai/gpt-4.1",
+        # Verified with an authenticated `gh auth token`: models.github.ai/inference answers the literal
+        # string "OK" at any path, while the Copilot API answers with a completion. It accepts the plain
+        # Authorization header, no editor headers.
+        "endpoint": "https://api.githubcopilot.com/chat/completions",
+        "model": "gpt-4.1",
     },
 }
 
@@ -76,19 +79,24 @@ DEFAULT_ROUTINES = [
      "keywords": ["öffne* browser", "browser öffnen", "open browser", "launch browser", "start browser"],
      "action": "url", "value": "https://www.google.com/"},
     {"id": "builtin:home", "name": "Open home folder", "enabled": True,
-     "keywords": ["öffne* home-ordner", "öffne* heimordner", "open home folder", "open home directory"],
+     "keywords": ["öffne* home-ordner", "öffne* heimordner", "home-ordner öffnen", "heimordner öffnen",
+                  "open home folder", "open home directory"],
      "action": "command", "value": "xdg-open {home}"},
     {"id": "builtin:downloads", "name": "Open Downloads", "enabled": True,
-     "keywords": ["öffne* downloads", "öffne* download-ordner", "open downloads folder"],
+     "keywords": ["öffne* downloads", "öffne* download-ordner", "downloads öffnen", "download-ordner öffnen",
+                  "open downloads folder"],
      "action": "command", "value": "xdg-open {home}/Downloads"},
     {"id": "builtin:terminal", "name": "Open terminal", "enabled": True,
-     "keywords": ["öffne* terminal", "starte* terminal", "open terminal", "launch terminal"],
+     "keywords": ["öffne* terminal", "starte* terminal", "terminal öffnen", "terminal starten",
+                  "open terminal", "launch terminal"],
      "action": "command", "value": "x-terminal-emulator"},
     {"id": "builtin:calculator", "name": "Open calculator", "enabled": True,
-     "keywords": ["öffne* rechner", "starte* rechner", "open calculator", "launch calculator"],
+     "keywords": ["öffne* rechner", "starte* rechner", "rechner öffnen", "rechner starten",
+                  "open calculator", "launch calculator"],
      "action": "command", "value": "gnome-calculator"},
     {"id": "builtin:settings", "name": "Open system settings", "enabled": True,
-     "keywords": ["öffne* systemeinstellungen", "öffne* einstellungen", "open system settings"],
+     "keywords": ["öffne* systemeinstellungen", "öffne* einstellungen", "systemeinstellungen öffnen",
+                  "einstellungen öffnen", "open system settings"],
      "action": "command", "value": "gnome-control-center"},
     {"id": "example:search", "name": "Web search", "enabled": True,
      "keywords": ["suche im web nach", "suche im internet nach", "search the web for", "web search"],
@@ -109,6 +117,9 @@ DEFAULTS = {
     "start_on_login": True,  # create a GNOME autostart entry for this app
     "check_updates": True,
     "update_check_interval_hours": 6,
+    # Wayland gives clients no position: auto picks layer-shell on compositors that allow it
+    # for ordinary clients (Hyprland, Sway, …) and XWayland elsewhere (GNOME, KDE).
+    "window_placement": "auto",  # auto | layer-shell | x11 | none
     "system_prompts": copy.deepcopy(DEFAULT_SYSTEM_PROMPTS),
     "local_only": False,  # never contact external providers
     "check_components": True,  # offer to install missing LM Studio / Hermes at start
@@ -170,18 +181,29 @@ def _migrate(cfg: dict) -> dict:
 
 
 def normalize_routines(cfg: dict) -> dict:
-    """Drops malformed rows and makes sure the built-in rows exist."""
-    rows = []
+    """Drops malformed rows and makes sure the built-in rows exist.
+
+    A built-in row's action and value cannot be edited in the settings table, and the table
+    submits an empty value for them. Taking those two fields from DEFAULT_ROUTINES keeps a
+    save from blanking out the very shortcuts it has just shown.
+    """
+    templates = {d["id"]: d for d in DEFAULT_ROUTINES if d["id"] in BUILTIN_ROUTINES}
+    rows, seen = [], set()
     for r in cfg.get("routines") or []:
         if not isinstance(r, dict) or r.get("action") not in ACTIONS:
             continue
+        rid = str(r.get("id") or f"custom:{len(rows)}")
+        if rid in seen:  # one row per id, otherwise routing gets ambiguous
+            continue
+        seen.add(rid)
+        template = templates.get(rid)
         rows.append({
-            "id": str(r.get("id") or f"custom:{len(rows)}"),
-            "name": str(r.get("name") or ""),
+            "id": rid,
+            "name": str(r.get("name") or (template["name"] if template else "")),
             "enabled": bool(r.get("enabled", True)),
             "keywords": [str(k).strip() for k in r.get("keywords", []) if str(k).strip()],
-            "action": r["action"],
-            "value": str(r.get("value") or ""),
+            "action": template["action"] if template else r["action"],
+            "value": template["value"] if template else str(r.get("value") or ""),
         })
     have = {r["id"] for r in rows}
     rows += [copy.deepcopy(d) for d in DEFAULT_ROUTINES if d["id"] in BUILTIN_ROUTINES and d["id"] not in have]

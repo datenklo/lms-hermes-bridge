@@ -97,12 +97,27 @@ def stream_openai(endpoint: str, api_key: str, model: str, messages: list, param
     if api_key:
         headers["Authorization"] = f"Bearer {api_key}"
     req = urllib.request.Request(endpoint, json.dumps(body).encode(), headers)
+    thought_without_answer = False
     with _open(req) as resp:
+        answered = False
+        thinking = False
         for ev in _sse(resp):
             for choice in ev.get("choices", []):
-                text = (choice.get("delta") or {}).get("content")
+                delta = choice.get("delta") or {}
+                text = delta.get("content")
                 if text:
+                    answered = True
                     yield text
+                elif delta.get("reasoning_content"):
+                    thinking = True
+                if choice.get("finish_reason") == "length" and not answered and thinking:
+                    thought_without_answer = True
+    # A thinking model shares max_tokens with its reasoning channel. When the budget runs out
+    # inside that channel the answer is not short — it is absent, and an empty reply reads like a
+    # dead endpoint. Say what happened so the chain can move on and the reason is on screen.
+    if thought_without_answer:
+        raise ChatError(f"{model} used all {body.get('max_tokens')} tokens on reasoning and produced "
+                        f"no answer; raise max_tokens or choose a model without a thinking channel")
 
 
 def stream_anthropic(endpoint: str, api_key: str, model: str, messages: list, params: dict) -> Iterator[str]:

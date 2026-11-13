@@ -45,6 +45,12 @@ sed "s|@EXEC@|\"$HOME/.local/bin/lms-hermes-bridge\"|" \
 	data/io.github.lmshermesbridge.desktop.in > "$desktop_entry"
 cp src/lms_hermes_bridge/icons/lms-hermes-bridge-brain.svg \
 	"$HOME/.local/share/icons/hicolor/scalable/apps/io.github.lmshermesbridge.svg"
+# The tray asks for the symbolic variant by name; having it in the theme as well covers
+# hosts that ignore the IconThemePath the app advertises.
+mkdir -p "$HOME/.local/share/icons/hicolor/symbolic/apps"
+cp src/lms_hermes_bridge/icons/lms-hermes-bridge-brain-symbolic.svg \
+	"$HOME/.local/share/icons/hicolor/symbolic/apps/"
+chmod 644 "$HOME/.local/share/icons/hicolor/symbolic/apps/lms-hermes-bridge-brain-symbolic.svg"
 chmod 644 "$desktop_entry" "$HOME/.local/share/icons/hicolor/scalable/apps/io.github.lmshermesbridge.svg"
 if command -v desktop-file-validate >/dev/null; then
 	desktop-file-validate "$desktop_entry"
@@ -71,8 +77,20 @@ if [[ "${XDG_CURRENT_DESKTOP:-}" == *GNOME* ]] && command -v gnome-extensions >/
 		if ! gnome-extensions list | grep -Fxq "$indicator"; then
 			printf 'Arch/CachyOS: sudo pacman -S gnome-shell-extension-appindicator\n'
 			printf 'Ubuntu: sudo apt install gnome-shell-extension-appindicator\n'
+			printf 'Then run: gnome-extensions enable %s\n' "$indicator"
+		elif [[ -t 0 ]]; then
+			# Installed but disabled: that is the usual state on Arch and CachyOS, and
+			# enabling it is one command, so ask instead of leaving the user to find it.
+			printf 'The extension is installed but disabled. Enable it now? [Y/n] '
+			read -r answer || answer=""
+			case "$answer" in
+				[nN]*) printf 'Left it off: no tray icon, the overlay menu button and Ctrl+, reach the settings instead.\n' ;;
+				*) gnome-extensions enable "$indicator" \
+					&& printf 'Enabled. The icon appears once the shell reloaded the extensions.\n' ;;
+			esac
+		else
+			printf 'Then run: gnome-extensions enable %s\n' "$indicator"
 		fi
-		printf 'Then run: gnome-extensions enable %s\n' "$indicator"
 		printf 'If the extension is not found after installation, log out and back in first.\n'
 	fi
 fi

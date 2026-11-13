@@ -573,7 +573,9 @@ def run_custom(row: dict, prompt: str, match: re.Match, lang: str, launcher=None
         if not argv:
             return Result("custom", lang, m["empty"], label)
         if row.get("id") == "builtin:terminal" and argv == ["x-terminal-emulator"]:
-            argv = [next((name for name in ("x-terminal-emulator", "gnome-terminal", "kgx")
+            # "x-terminal-emulator" is a Debian/Ubuntu alias; Arch and friends do not ship it.
+            argv = [next((name for name in ("x-terminal-emulator", "gnome-terminal", "kgx", "konsole",
+                                            "xfce4-terminal", "alacritty", "kitty", "foot", "xterm")
                           if shutil.which(name)), "x-terminal-emulator")]
         spawn(argv)
         return Result("custom", lang, m["started"].format(cmd=shlex.join(argv)), label)
