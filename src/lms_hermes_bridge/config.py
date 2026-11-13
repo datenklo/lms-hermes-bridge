@@ -25,8 +25,11 @@ PROVIDER_PRESETS = {
     "copilot": {
         "name": "Copilot (GitHub Models)",
         "kind": "openai",
-        "endpoint": "https://models.github.ai/inference/chat/completions",
-        "model": "openai/gpt-4.1",
+        # Verified with an authenticated `gh auth token`: models.github.ai/inference answers the literal
+        # string "OK" at any path, while the Copilot API answers with a completion. It accepts the plain
+        # Authorization header, no editor headers.
+        "endpoint": "https://api.githubcopilot.com/chat/completions",
+        "model": "gpt-4.1",
     },
 }
 

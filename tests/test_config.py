@@ -36,3 +36,13 @@ def test_one_row_per_id():
     row = {"id": "custom:x", "name": "X", "keywords": ["x"], "action": "answer", "value": "y"}
     rows = config.normalize_routines({"routines": [row, dict(row)]})["routines"]
     assert [r["id"] for r in rows].count("custom:x") == 1
+
+
+def test_copilot_preset_points_at_the_endpoint_that_answers():
+    """models.github.ai/inference answers the literal string "OK" for every path, so a provider
+    built from that preset never receives a completion. Verified against the live API with an
+    authenticated `gh auth token`; the Copilot endpoint does answer.
+    """
+    preset = config.PROVIDER_PRESETS["copilot"]
+    assert preset["endpoint"] == "https://api.githubcopilot.com/chat/completions"
+    assert preset["kind"] == "openai"
