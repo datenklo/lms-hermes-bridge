@@ -1,7 +1,12 @@
 """System tray icon via the StatusNotifierItem D-Bus protocol (no extra dependencies).
 
 Left click -> Activate (show overlay), right click -> dbusmenu with the given items.
-GNOME needs the AppIndicator/KStatusNotifierItem extension, which Ubuntu ships by default.
+
+A tray icon needs a *host*: the panel or shell must own org.kde.StatusNotifierWatcher.
+KDE and the wlroots bars do that by themselves, GNOME only with the AppIndicator
+extension enabled, and a plain wlroots session without a bar has none at all. Use
+has_host() to find out before promising an icon; the overlay keeps its own menu button
+for the case where there is no host.
 """
 import os
 import sys
@@ -10,10 +15,30 @@ from pathlib import Path
 from gi.repository import Gio, GLib
 
 ICON_DIR = str(Path(__file__).parent / "icons")
-ICON_NAME = "lms-hermes-bridge-brain"
+# "-symbolic" is the naming convention every StatusNotifier host understands: the host
+# recolours the icon to the panel's own foreground, so it stays visible on light and dark bars.
+ICON_NAME = "lms-hermes-bridge-brain-symbolic"
+APP_ICON_NAME = "lms-hermes-bridge-brain"  # full colour, used by the launcher/.desktop file
 OBJ_PATH = "/StatusNotifierItem"
 MENU_PATH = "/MenuBar"
 WATCHER = "org.kde.StatusNotifierWatcher"
+HOST_TIMEOUT_MS = 1000
+
+
+def has_host(conn: Gio.DBusConnection | None = None) -> bool:
+    """True when a tray host has registered org.kde.StatusNotifierWatcher.
+
+    Registering our own StatusNotifierItem name says nothing about this: without a host
+    the item sits on the bus and no panel ever draws it.
+    """
+    try:
+        conn = conn or Gio.bus_get_sync(Gio.BusType.SESSION, None)
+        reply = conn.call("org.freedesktop.DBus", "/org/freedesktop/DBus", "org.freedesktop.DBus",
+                          "ListNames", None, Gio.DBusCallFlags.NONE, HOST_TIMEOUT_MS, None, None, None)
+    except (GLib.Error, TypeError):
+        return False
+    names = reply.unpack()[0] if reply is not None else ()
+    return WATCHER in names
 
 XML = """
 <node>

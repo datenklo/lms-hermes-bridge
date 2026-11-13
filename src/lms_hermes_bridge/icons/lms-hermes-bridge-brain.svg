@@ -1,4 +1,8 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <!-- Launcher icon: light strokes need a dark plate, otherwise they vanish on a white
+       application grid. The tray uses lms-hermes-bridge-brain-symbolic.svg instead, which
+       the panel recolours to its own foreground. -->
+  <rect x="1" y="1" width="62" height="62" rx="14" fill="#2d3340"/>
   <g fill="none" stroke="#e6e6e6" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round">
     <!-- left hemisphere -->
     <path d="M31 12c-3-4-10-4-12 1-5 0-9 4-8 9-3 2-4 7-1 10-1 4 1 8 5 9 1 4 6 6 9 3 3 3 7 1 7-2V12z"/>
