@@ -114,6 +114,9 @@ DEFAULTS = {
     "start_on_login": True,  # create a GNOME autostart entry for this app
     "check_updates": True,
     "update_check_interval_hours": 6,
+    # Wayland gives clients no position: auto picks layer-shell on compositors that allow it
+    # for ordinary clients (Hyprland, Sway, …) and XWayland elsewhere (GNOME, KDE).
+    "window_placement": "auto",  # auto | layer-shell | x11 | none
     "system_prompts": copy.deepcopy(DEFAULT_SYSTEM_PROMPTS),
     "local_only": False,  # never contact external providers
     "check_components": True,  # offer to install missing LM Studio / Hermes at start

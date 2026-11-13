@@ -1,4 +1,5 @@
 import sys
+import os
 import subprocess
 import threading
 
@@ -13,10 +14,11 @@ from . import updater  # noqa: E402
 from .i18n import current, set_language, t  # noqa: E402
 from .install_window import InstallWindow  # noqa: E402
 from .placement import move_to_top  # noqa: E402
+from .session import choose_backend  # noqa: E402
 from .settings_dialog import SettingsWindow  # noqa: E402
 from .setup_window import SetupWindow  # noqa: E402
 from .system_prompts import for_language  # noqa: E402
-from .tray import ICON_DIR, Tray  # noqa: E402
+from .tray import ICON_DIR, Tray, has_host  # noqa: E402
 from .update_window import UpdateWindow  # noqa: E402
 
 GITHUB_URL = "https://github.com/datenklo/lms-hermes-bridge"
@@ -102,6 +104,16 @@ class BridgeWindow(Gtk.ApplicationWindow):
         self.capability_button.set_popover(self.capability_popover)
         toolbar.append(self.capability_button)
         box.append(toolbar)
+        # Only visible when the desktop has no tray host: the missing icon then explains
+        # itself and is one click away from the settings.
+        self.tray_hint = Gtk.Button(css_classes=["flat"])
+        hint_box = Gtk.Box(spacing=6)
+        hint_box.append(Gtk.Image.new_from_icon_name("dialog-warning-symbolic"))
+        hint_box.append(Gtk.Label(xalign=0, css_classes=["route"], wrap=True, label=t("tray_host_missing")))
+        self.tray_hint.set_child(hint_box)
+        self.tray_hint.connect("clicked", lambda *_: self.get_application().activate_action("settings", None))
+        self.tray_hint.set_visible(False)
+        box.append(self.tray_hint)
 
         result = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         result.append(Gtk.Separator())
@@ -132,6 +144,12 @@ class BridgeWindow(Gtk.ApplicationWindow):
         self.popover = Gtk.PopoverMenu.new_from_model(self.context_menu)
         self.popover.set_parent(box)
         self.popover.set_has_arrow(False)
+        # A visible control for the same menu. Right-click alone is useless without a tray
+        # icon, and nobody finds it by accident.
+        self.menu_button = Gtk.MenuButton(icon_name="open-menu-symbolic", css_classes=["flat"],
+                                          tooltip_text=t("menu"))
+        self.menu_button.set_popover(Gtk.PopoverMenu.new_from_model(self.context_menu))
+        toolbar.append(self.menu_button)
         self.entry.set_placeholder_text(t("placeholder"))
 
         self.connect("notify::is-active", self._on_active)
@@ -146,6 +164,9 @@ class BridgeWindow(Gtk.ApplicationWindow):
         self.context_menu.append(self.get_application().update_menu_text(), "app.update")
         self.context_menu.append(t("about"), "app.about")
         self.context_menu.append(t("quit"), "app.quit")
+
+    def show_tray_hint(self, show: bool) -> None:
+        self.tray_hint.set_visible(show)
 
     def _icon_button(self, icon: str, tooltip: str, callback) -> Gtk.Button:
         button = Gtk.Button(icon_name=icon, css_classes=["flat"], tooltip_text=t(tooltip))
@@ -321,14 +342,22 @@ class BridgeWindow(Gtk.ApplicationWindow):
         self.popover.popup()
 
     def show_overlay(self):
+        backend = self._placement_backend()
+        if backend == "layer-shell":
+            # A layer surface has to be configured before its first map, unlike an X11
+            # window, which can only be moved once it exists (see _place).
+            move_to_top(self, backend=backend)
         self.present()
         self.entry.grab_focus()
         self.entry.select_region(0, -1)
         self._refresh_model_capabilities()
         GLib.timeout_add(40, self._place)  # the surface must be mapped before it can be moved
 
+    def _placement_backend(self) -> str:
+        return choose_backend(os.environ, self.cfg.get("window_placement", "auto"))
+
     def _place(self):
-        move_to_top(self, keep_above=True)
+        move_to_top(self, keep_above=True, backend=self._placement_backend())
         return False
 
     def _keep_above(self, *_):
@@ -337,7 +366,7 @@ class BridgeWindow(Gtk.ApplicationWindow):
 
     def _raise_above(self):
         if self.get_visible():
-            move_to_top(self, keep_above=True)
+            move_to_top(self, keep_above=True, backend=self._placement_backend())
         return False
 
     # -- query flow -----------------------------------------------------
@@ -575,6 +604,7 @@ class BridgeApp(Gtk.Application):
         self.needs_setup = not cfgmod.CONFIG_FILE.exists()
         self.win: BridgeWindow | None = None
         self.update_available = False
+        self.tray_host_missing = False
         self._update_timer = 0
         self._update_check_running = False
         self.add_main_option("background", 0, GLib.OptionFlags.NONE, GLib.OptionArg.NONE, "Start hidden", None)
@@ -591,6 +621,9 @@ class BridgeApp(Gtk.Application):
             act = Gio.SimpleAction.new(name, None)
             act.connect("activate", cb)
             self.add_action(act)
+        # Ctrl+, opens the settings, the convention every GNOME app uses. Needed because a
+        # desktop without a tray host has no other way in when the overlay is closed.
+        self.set_accels_for_action("app.settings", ("<Control>comma",))
         self.hold()  # stay alive while the overlay is hidden
         hotkey.refresh_command()
         try:
@@ -601,8 +634,15 @@ class BridgeApp(Gtk.Application):
                                            (lambda: t("about"), self.open_about),
                                            (lambda: t("quit"), self.quit)])
             self.tray.start()
+            # Registered on the bus is not the same as visible: GNOME without the
+            # AppIndicator extension has no watcher, so nothing would ever draw the icon.
+            self.tray_host_missing = not has_host()
         except Exception:
             self.tray = None  # no D-Bus session: run without tray icon
+            self.tray_host_missing = True
+        if self.tray_host_missing:
+            print("No StatusNotifierWatcher on the session bus, so there is no tray host; "
+                  "the overlay menu button and Ctrl+, reach the settings instead.", file=sys.stderr)
         self._configure_update_monitor()
 
     def update_menu_text(self):

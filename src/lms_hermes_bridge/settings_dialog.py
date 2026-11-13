@@ -121,6 +121,12 @@ class SettingsWindow(Gtk.Window):
         self.w_agent_backend = _row(g, t("agent_backend"), Gtk.DropDown.new_from_strings(["Hermes", "Pi"]))
         self.w_agent_backend.set_selected(1 if self.cfg.get("agent_backend") == "pi" else 0)
 
+        self.placements = ["auto", "layer-shell", "x11", "none"]
+        self.w_placement = _row(g, t("placement"), Gtk.DropDown.new_from_strings(
+            [t("placement_auto"), t("placement_layer_shell"), t("placement_x11"), t("placement_none")]))
+        chosen = self.cfg.get("window_placement", "auto")
+        self.w_placement.set_selected(self.placements.index(chosen) if chosen in self.placements else 0)
+
         self.w_start_on_login = _row(g, t("start_on_login"), Gtk.Switch(halign=Gtk.Align.START))
         self.w_start_on_login.set_active(self.cfg["start_on_login"])
 
@@ -408,6 +414,7 @@ class SettingsWindow(Gtk.Window):
         c["language"] = self.langs[self.w_lang.get_selected()]
         c["local_backend"] = ("lmstudio", "strata")[min(self.w_local_backend.get_selected(), 1)]
         c["agent_backend"] = ("hermes", "pi")[min(self.w_agent_backend.get_selected(), 1)]
+        c["window_placement"] = self.placements[min(self.w_placement.get_selected(), len(self.placements) - 1)]
         c["pi"].update(enabled=self.w_pi_on.get_active(), executable=self.w_pi_executable.get_text().strip() or "pi",
                    working_directory=self.w_pi_directory.get_text().strip() or "~",
                    model=self.w_pi_model.get_text().strip(), provider=self.w_pi_provider.get_text().strip())
