@@ -6,6 +6,7 @@ import threading
 import gi
 
 gi.require_version("Gtk", "4.0")
+gi.require_version("Gdk", "4.0")
 from gi.repository import Gdk, Gio, GLib, Gtk  # noqa: E402
 
 from . import APP_ID, __version__, config as cfgmod, hotkey, installer, lmstudio, providers, router, routines, services  # noqa: E402
