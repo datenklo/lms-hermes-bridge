@@ -561,7 +561,9 @@ class BridgeWindow(Gtk.ApplicationWindow):
             system = next((message["content"] for message in messages if message["role"] == "system"), "")
             prompt = next(message["content"] for message in messages if message["role"] == "user")
             return pi_harness.stream(cfg["pi"], prompt, system, cancel)
-        p = next(p for p in cfg["providers"] if p["id"] == route.provider_id)
+        p = next((p for p in cfg["providers"] if p["id"] == route.provider_id), None)
+        if p is None:  # the provider was removed from the settings after this route was decided
+            raise providers.ChatError(f"provider '{route.provider_id}' is not configured")
         return providers.stream(p["kind"], p["endpoint"], p["api_key"], p["model"], messages,
                                 router.TIER_PARAMS[route.tier])
 
