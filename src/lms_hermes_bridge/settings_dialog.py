@@ -261,7 +261,8 @@ class SettingsWindow(Gtk.Window):
                 "enabled": r["on"].get_active(),
                 "keywords": [k.strip() for k in r["kw"].get_text().split(",") if k.strip()],
                 "action": self._action_of(r["act"], r["actions"]),
-                "value": "" if r["builtin"] else r["value"].get_text().strip(),
+                # Builtin rows show the value disabled, not empty: submit what is displayed.
+                "value": r["value"].get_text().strip(),
             })
         return rows
 
