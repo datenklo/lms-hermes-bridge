@@ -287,7 +287,7 @@ def test_simple_desktop_actions_do_not_need_hermes(monkeypatch):
     cases = [
         ("Öffne den Browser", ["xdg-open", "https://www.google.com/"]),
         ("Öffne den Home-Ordner", ["xdg-open", str(Path.home())]),
-        ("Öffne Downloads", ["xdg-open", str(Path.home() / "Downloads")]),
+        ("Öffne Downloads", ["xdg-open", str(Path.home()) + "/Downloads"]),
         ("Öffne Terminal", ["x-terminal-emulator"]),
         ("Öffne Rechner", ["gnome-calculator"]),
         ("Öffne Systemeinstellungen", ["gnome-control-center"]),
